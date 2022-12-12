@@ -1,11 +1,25 @@
-﻿using somiod.Models;
+﻿using Newtonsoft.Json.Linq;
+using somiod.Models;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.Remoting.Messaging;
+using System.Text;
+using System.Web;
+using System.Web.DynamicData;
 using System.Web.Http;
+using System.Web.UI.WebControls;
+using System.Xml;
+using System.Xml.Linq;
+using System.Xml.Serialization;
+using System.Xml.XPath;
+using somiod.Utils;
+using System.CodeDom;
+using System.Net.Http.Formatting;
 
 namespace somiod.Controllers
 {
@@ -34,6 +48,12 @@ namespace somiod.Controllers
                 command.Connection = conn;
 
                 SqlDataReader reader = command.ExecuteReader();
+                
+                //return success but no results when the sql query hasn't returned any data
+                if (!reader.HasRows)
+                    return Ok();
+
+                //populate the applications list with the result from the sql query
                 while (reader.Read())
                 {
                     application = new Application();
@@ -46,7 +66,7 @@ namespace somiod.Controllers
                 reader.Close();
                 conn.Close();
 
-                return Ok(applications);
+                return Content(HttpStatusCode.OK, applications, Configuration.Formatters.XmlFormatter);
             }
             catch (Exception)
             {
@@ -59,19 +79,45 @@ namespace somiod.Controllers
         }
 
         //POST api/somiod/
-        //Body : Resource object, fields of interest (res_type, name)
+        //Body(xml): res_type, name
         [Route("")]
-        public IHttpActionResult PostApplication([FromBody] Resource resource)
+        public IHttpActionResult PostApplication([FromBody] XElement xmlFromBody)
         {
-            if (resource.res_type != "application")
-                return BadRequest("Resource type not valid, can only be 'application' for this route");
+            //Failed attempt to reuse code, using the function checkBodyElems in Utils/DB_utils
+            /*
+            RequiredFields requiredFields = new RequiredFields();
+            requiredFields.name = true;
+            requiredFields.res_type = true;
 
-            if (resource.name == null)
-                return BadRequest("Missing 'name' value in body is required!");
+            ResourceAux resourceAux = DB_utils.checkBodyElems(xmlFromBody, requiredFields);
+            if (resourceAux.errorMessage != null)
+            {
+                return Content(resourceAux.errortype, resourceAux.errorMessage, Configuration.Formatters.XmlFormatter);
+            }
 
-            if (existsApplication(resource.name))
-                return Content(HttpStatusCode.Conflict, "An application with such name already exists!");
+            String res_type = resourceAux.resourcesReturnFields.res_type;
+            String name = resourceAux.resourcesReturnFields.name;
+            */
 
+            if (xmlFromBody.XPathSelectElement("/res_type") == null)
+                return Content(HttpStatusCode.BadRequest, "Missing required 'res_type' element in body!", Configuration.Formatters.XmlFormatter);
+
+            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
+
+            if (xmlFromBody.XPathSelectElement("/name") == null)
+                return Content(HttpStatusCode.BadRequest, "Missing required 'name' element in body!", Configuration.Formatters.XmlFormatter);
+
+            String name = xmlFromBody.XPathSelectElement("/name").Value;
+
+            if (res_type != "application")
+                return Content(HttpStatusCode.BadRequest, "res_type element not valid, can only be 'application' for this route", Configuration.Formatters.XmlFormatter);
+
+            if (String.IsNullOrEmpty(name))
+                return Content(HttpStatusCode.BadRequest, "Missing required 'name' element in body!", Configuration.Formatters.XmlFormatter);
+
+            if (DB_utils.existsApplication(name))
+                return Content(HttpStatusCode.Conflict, "An application with such name already exists!", Configuration.Formatters.XmlFormatter);
+            
             SqlConnection conn = null;
 
             try
@@ -82,15 +128,14 @@ namespace somiod.Controllers
                 SqlCommand command = new SqlCommand();
 
                 command.CommandText = "INSERT INTO Applications (Name) VALUES (@name)";
-                command.Parameters.AddWithValue("@name", resource.name);
+                command.Parameters.AddWithValue("@name", name);
                 command.CommandType = System.Data.CommandType.Text;
                 command.Connection = conn;
                 command.ExecuteNonQuery();
-
                 conn.Close();
 
-                //return Created<Application>(findApplication(resource.name))
-                return Ok(findApplication(resource.name));
+                return Content(HttpStatusCode.OK, DB_utils.findApplication(name), Configuration.Formatters.XmlFormatter);
+
             }
             catch (Exception)
             {
@@ -103,14 +148,15 @@ namespace somiod.Controllers
         }
 
         //PUT api/somiod/<applicationName>
-        //Body : Resource object, fields of interest (name)
+        //Header: applicationName
+        //Body(xml): res_type, name
         [Route("{applicationName}")]
         public IHttpActionResult PutApplication(string applicationName, [FromBody] Resource resource)
         {
             if (resource.res_type != "application")
                 return BadRequest("Resource type not valid, can only be 'application' for this route");
 
-            Application foundApplication = findApplication(applicationName);
+            Application foundApplication = DB_utils.findApplication(applicationName);
             if (foundApplication == null)
                 return NotFound();
 
@@ -134,7 +180,7 @@ namespace somiod.Controllers
 
                 conn.Close();
 
-                return Ok(findApplication(resource.name));
+                return Ok(DB_utils.findApplication(resource.name));
             }
             catch (Exception)
             {
@@ -146,15 +192,17 @@ namespace somiod.Controllers
             }
         }
 
+        //soft delete
         //DELETE api/somiod/<applicationName>
         [Route("{applicationName}")]
         public IHttpActionResult DeleteApplication(string applicationName)
         {
-            Application foundApplication = findApplication(applicationName);
+            DB_utils.findApplication(applicationName);
+            Application foundApplication = DB_utils.findApplication(applicationName);
             if (foundApplication == null)
                 return NotFound();
 
-            if (hasModules(applicationName))
+            if (DB_utils.hasModules(applicationName))
                 return Content(HttpStatusCode.Conflict, "Given application has modules related to it!");
 
             SqlConnection conn = null;
@@ -181,7 +229,7 @@ namespace somiod.Controllers
             }
             catch (Exception)
             {
-                return NotFound();
+                return InternalServerError();
             }
             finally
             {
@@ -198,7 +246,7 @@ namespace somiod.Controllers
         [Route("{applicationName}")]
         public IEnumerable<Module> GetAllModulesFromApplication(string applicationName)
         {
-            Application foundApplication = findApplication(applicationName);
+            Application foundApplication = DB_utils.findApplication(applicationName);
             if (foundApplication == null)
                 return null;
 
@@ -258,132 +306,17 @@ namespace somiod.Controllers
 
             return Ok(resource);
         }
+
+        [Route("{applicationName}/{moduleName}")]
+        public IHttpActionResult PutModule(string applicationName, string moduleName, [FromBody] Resource resource)
+        {
+            return InternalServerError();
+        }
         #endregion
 
         #region Subscriptions
 
         #endregion
 
-
-
-        #region utils
-        public Application findApplication(string applicationName)
-        {
-            Application application = new Application();
-            SqlConnection conn = null;
-
-            try
-            {
-                conn = new SqlConnection(connectionString);
-                conn.Open();
-
-                SqlCommand command = new SqlCommand();
-                command.CommandText = "SELECT * FROM Applications WHERE name like @applicationName";
-                command.Parameters.AddWithValue("@applicationName", applicationName);
-                command.CommandType = System.Data.CommandType.Text;
-                command.Connection = conn;
-
-                SqlDataReader reader = command.ExecuteReader();
-
-                if (!reader.HasRows)
-                {
-                    return null;
-                }
-                while (reader.Read())
-                {
-                    application.Id = (int)reader["Id"];
-                    application.name = (string)reader["name"];
-                    application.creation_dt = (DateTime)reader["creation_dt"];
-                }
-
-                reader.Close();
-                conn.Close();
-
-                return application;
-            }
-            catch (Exception)
-            {
-                return new Application();
-            }
-            finally
-            {
-                conn.Close();
-            }
-        }   
-
-        private Boolean existsApplication(string applicationName)
-        {
-            Boolean hasFoundApplication = false;
-            SqlConnection conn = null;
-            try
-            {
-                conn = new SqlConnection(connectionString);
-                conn.Open();
-
-                SqlCommand command = new SqlCommand();
-                command.CommandText = "SELECT * FROM Applications WHERE name like @applicationName";
-                command.Parameters.AddWithValue("@applicationName", applicationName);
-                command.CommandType = System.Data.CommandType.Text;
-                command.Connection = conn;
-
-                SqlDataReader reader = command.ExecuteReader();
-
-                if (reader.HasRows)
-                    hasFoundApplication = true;
-                else
-                    hasFoundApplication = false;
-
-                reader.Close();
-                conn.Close();
-
-                return hasFoundApplication;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-            finally
-            {
-                conn.Close();
-            }
-
-        }
-
-        public Boolean hasModules(string applicationName)
-        {
-            Application foundApplication = findApplication(applicationName);
-            
-            List<Module> modules = new List<Module>();
-            Module module;
-            SqlConnection conn = null;
-
-            try
-            {
-                conn = new SqlConnection(connectionString);
-                conn.Open();
-
-                SqlCommand command = new SqlCommand();
-                command.CommandText = "SELECT * FROM Modules WHERE applicationID = @applicationId";
-                command.Parameters.AddWithValue("@applicationId", foundApplication.Id);
-                command.CommandType = System.Data.CommandType.Text;
-                command.Connection = conn;
-
-                SqlDataReader reader = command.ExecuteReader();
-
-                if (reader.HasRows)
-                    return true;
-                else
-                    return false;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-            finally
-            {
-                conn.Close();
-            }
-        }
-        #endregion
     }
 }

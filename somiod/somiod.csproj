@@ -89,15 +89,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App_Start\WebApiConfig.cs" />
-    <Compile Include="Controllers\ApplicationsController.cs" />
-    <Compile Include="Controllers\ModulesController.cs" />
     <Compile Include="Controllers\somiodController.cs" />
-    <Compile Include="Controllers\SubscriptionsController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Models\Application.cs" />
     <Compile Include="Models\Module.cs" />
+    <Compile Include="Models\RequiredFields.cs" />
+    <Compile Include="Models\ResourceAux.cs" />
     <Compile Include="Models\Resource.cs" />
     <Compile Include="Models\Subscription.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -106,6 +105,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
+    <Compile Include="Utils\DB_utils.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
