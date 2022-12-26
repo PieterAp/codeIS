@@ -1,14 +1,10 @@
 ﻿using somiod.Models;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Data.SqlClient;
-using System.Linq;
 using System.Net;
-using System.Web;
 using System.Xml.Linq;
 using System.Xml.XPath;
-using System.Web.Http;
 
 namespace somiod.Utils
 {
@@ -16,7 +12,7 @@ namespace somiod.Utils
     {
         static string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["somiod.Properties.Settings.ConnStr"].ConnectionString;
 
-        public static ResourceAux checkBodyElems (XElement xmlFromBody, RequiredFields requiredFields)
+        public static ResourceAux checkBodyElems(XElement xmlFromBody, RequiredFields requiredFields)
         {
             ResourceAux resourceAux = new ResourceAux();
             if (requiredFields.name)
@@ -25,7 +21,7 @@ namespace somiod.Utils
                 {
                     resourceAux.errortype = HttpStatusCode.BadRequest;
                     resourceAux.errorMessage = "Missing required 'name' element in body!";
-                    
+
                     return resourceAux;
                 }
                 resourceAux.resourceFilledFields.name = xmlFromBody.XPathSelectElement("/res_type").Value;
@@ -48,6 +44,51 @@ namespace somiod.Utils
             return resourceAux.res_type = res_type;
         }
         */
+
+        public static int getApplicationId(string applicationName)
+        {
+            int applicationId = -1; 
+            SqlConnection conn = null;
+
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+                command.CommandText = "SELECT Id FROM Applications WHERE name like @applicationName";
+                command.Parameters.AddWithValue("@applicationName", applicationName);
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+
+                SqlDataReader reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                {
+                    return -1;
+                }
+                while (reader.Read())
+                {
+                    applicationId = (int)reader["Id"];                 
+                }
+
+                reader.Close();
+                conn.Close();
+
+                return applicationId;
+            }
+            catch (Exception)
+            {
+                return -1;
+            }
+            finally
+            {
+                conn.Close();
+            }
+
+        }
+
+
 
         public static Application findApplication(string applicationName)
         {
@@ -92,6 +133,110 @@ namespace somiod.Utils
                 conn.Close();
             }
         }
+
+
+
+        public static Module findModule(string moduleName)
+        {
+            Module module = new Module();
+            SqlConnection conn = null;
+
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+                command.CommandText = "SELECT * FROM Modules WHERE name like @moduleName";
+                command.Parameters.AddWithValue("@moduleName", moduleName);
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+
+                SqlDataReader reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                {
+                    return null;
+                }
+                while (reader.Read())
+                {
+                    module.Id = (int)reader["Id"];
+                    module.name = (string)reader["name"];
+                    module.creation_dt = (DateTime)reader["creation_dt"];
+                }
+
+                reader.Close();
+                conn.Close();
+
+                return module;
+            }
+            catch (Exception)
+            {
+                return new Module();
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
+
+        
+        public static Boolean existsModuleInApplication(string applicationName, string name)
+        {
+            int applicationID = 0;
+            Boolean hasFoundModule = false;
+            SqlConnection conn = null;
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+                command.CommandText = "SELECT * FROM Applications WHERE name like @applicationName";
+                command.Parameters.AddWithValue("@applicationName", applicationName);
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+
+                SqlDataReader reader = command.ExecuteReader();
+
+                if (reader.HasRows)
+                {
+                    while (reader.Read())
+                    {
+                        applicationID = (int)reader["Id"];
+                    }
+
+                    reader.Close();
+
+                    command.CommandText = "SELECT * FROM Modules WHERE name like @name AND applicationId like @applicationId";
+                    command.Parameters.AddWithValue("@name", name);
+                    command.Parameters.AddWithValue("@applicationId", applicationID);
+                    command.CommandType = System.Data.CommandType.Text;
+                    command.Connection = conn;
+
+                    SqlDataReader readerModule = command.ExecuteReader();
+                    if (readerModule.HasRows)
+                        hasFoundModule = true;
+                    else
+                        hasFoundModule = false;
+
+                    readerModule.Close();
+                }
+
+                conn.Close();
+
+                return hasFoundModule;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
+
 
         public static Boolean existsApplication(string applicationName)
         {
