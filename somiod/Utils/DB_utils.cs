@@ -12,24 +12,6 @@ namespace somiod.Utils
     {
         static string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["somiod.Properties.Settings.ConnStr"].ConnectionString;
 
-        public static ResourceAux checkBodyElems(XElement xmlFromBody, RequiredFields requiredFields)
-        {
-            ResourceAux resourceAux = new ResourceAux();
-            if (requiredFields.name)
-            {
-                if (!xmlFromBody.XPathSelectElement("/name").HasElements)
-                {
-                    resourceAux.errortype = HttpStatusCode.BadRequest;
-                    resourceAux.errorMessage = "Missing required 'name' element in body!";
-
-                    return resourceAux;
-                }
-                resourceAux.resourceFilledFields.name = xmlFromBody.XPathSelectElement("/res_type").Value;
-            }
-
-            return resourceAux;
-        }
-
         public static int getApplicationId(string applicationName)
         {
             int applicationId = -1;
