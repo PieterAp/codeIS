@@ -55,6 +55,48 @@ namespace somiod.Utils
 
         }
 
+        public static int getModuleId(string moduleName)
+        {
+            int moduleId = -1;
+            SqlConnection conn = null;
+
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+                command.CommandText = "SELECT Id FROM Modules WHERE name like @moduleName";
+                command.Parameters.AddWithValue("@moduleName", moduleName);
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+
+                SqlDataReader reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                {
+                    return -1;
+                }
+                while (reader.Read())
+                {
+                    moduleId = (int)reader["Id"];
+                }
+
+                reader.Close();
+                conn.Close();
+
+                return moduleId;
+            }
+            catch (Exception)
+            {
+                return -1;
+            }
+            finally
+            {
+                conn.Close();
+            }
+
+        }
 
         public static Application findApplication(string applicationName)
         {
@@ -100,9 +142,7 @@ namespace somiod.Utils
             }
         }
 
-
-
-        public static Module findModule(string moduleName)
+        public static Module findModule(string applicationName, string moduleName)
         {
             Module module = new Module();
             SqlConnection conn = null;
@@ -113,8 +153,9 @@ namespace somiod.Utils
                 conn.Open();
 
                 SqlCommand command = new SqlCommand();
-                command.CommandText = "SELECT * FROM Modules WHERE name like @moduleName";
+                command.CommandText = "SELECT * FROM Modules M JOIN Applications A ON A.ID = M.applicationID WHERE M.name = @moduleName AND A.ID = @applicationID";
                 command.Parameters.AddWithValue("@moduleName", moduleName);
+                command.Parameters.AddWithValue("@applicationID", getApplicationId(applicationName));
                 command.CommandType = System.Data.CommandType.Text;
                 command.Connection = conn;
 
@@ -146,7 +187,115 @@ namespace somiod.Utils
             }
         }
 
-        
+        public static Subscription findSubscription(string applicationName, string moduleName,string subscriptionName)
+        {
+            Subscription subscription = new Subscription();
+            SqlConnection conn = null;
+
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+                command.CommandText = "SELECT * FROM Subscriptions S " +
+                    "LEFT JOIN MODULES M ON M.ID = S.moduleID " +
+                    "LEFTJOIN APLICATIONS A ON A.ID = M.applicationID " +
+                    "WHERE S.name like @subscriptionName AND M.ID = @moduleID AND A.ID = @applicationID";
+
+                command.Parameters.AddWithValue("@subscriptionName", subscriptionName);
+                command.Parameters.AddWithValue("@moduleID", getModuleId(moduleName));
+                command.Parameters.AddWithValue("@applicationID", getApplicationId(applicationName));
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+
+                SqlDataReader reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                {
+                    return null;
+                }
+                while (reader.Read())
+                {
+                    subscription.Id = (int)reader["Id"];
+                    subscription.name = (string)reader["name"];
+                    subscription.creation_dt = (DateTime)reader["creation_dt"];
+                    subscription.endpoint = (string)reader["endpoint"];
+                    subscription.eventType = (string)reader["eventType"];
+                    subscription.moduleID = (int)reader["moduleID"];
+                }
+
+                reader.Close();
+                conn.Close();
+
+                return subscription;
+            }
+            catch (Exception)
+            {
+                return new Subscription();
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
+
+        public static Boolean existsSubscriptionInModule(string moduleName, string name)
+        {
+            int moduleID = 0;
+            Boolean hasFoundSubscription = false;
+            SqlConnection conn = null;
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+                command.CommandText = "SELECT * FROM Modules WHERE name like @moduleName";
+                command.Parameters.AddWithValue("@moduleName", moduleName);
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+
+                SqlDataReader reader = command.ExecuteReader();
+
+                if (reader.HasRows)
+                {
+                    while (reader.Read())
+                    {
+                        moduleID = (int)reader["Id"];
+                    }
+
+                    reader.Close();
+
+                    command.CommandText = "SELECT * FROM Subscriptions WHERE name like @name AND moduleId like @moduleId";
+                    command.Parameters.AddWithValue("@name", name);
+                    command.Parameters.AddWithValue("@moduleId", moduleID);
+                    command.CommandType = System.Data.CommandType.Text;
+                    command.Connection = conn;
+
+                    SqlDataReader readerModule = command.ExecuteReader();
+                    if (readerModule.HasRows)
+                        hasFoundSubscription = true;
+                    else
+                        hasFoundSubscription = false;
+
+                    readerModule.Close();
+                }
+
+                conn.Close();
+
+                return hasFoundSubscription;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
+
         public static Boolean existsModuleInApplication(string applicationName, string name)
         {
             int applicationID = 0;
@@ -202,7 +351,6 @@ namespace somiod.Utils
                 conn.Close();
             }
         }
-
 
         public static Boolean existsApplication(string applicationName)
         {
