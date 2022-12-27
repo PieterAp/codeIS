@@ -1,25 +1,12 @@
-﻿using Newtonsoft.Json.Linq;
-using somiod.Models;
+﻿using somiod.Models;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
-using System.IO;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
-using System.Runtime.Remoting.Messaging;
-using System.Text;
-using System.Web;
-using System.Web.DynamicData;
 using System.Web.Http;
-using System.Web.UI.WebControls;
-using System.Xml;
 using System.Xml.Linq;
-using System.Xml.Serialization;
 using System.Xml.XPath;
 using somiod.Utils;
-using System.CodeDom;
-using System.Net.Http.Formatting;
 
 namespace somiod.Controllers
 {
@@ -53,7 +40,7 @@ namespace somiod.Controllers
                 command.Connection = conn;
 
                 SqlDataReader reader = command.ExecuteReader();
-                
+
                 //return success but no results when the sql query hasn't returned any data
                 if (!reader.HasRows)
                     return Ok();
@@ -181,13 +168,33 @@ namespace somiod.Controllers
             /*
             if (resource.res_type != "application")
                 return BadRequest("Resource type not valid, can only be 'application' for this route");
-            */
+            
 
+            if (xmlFromBody.XPathSelectElement("/res_type") == null)
+                return Content(HttpStatusCode.BadRequest, "Missing required 'res_type' element in body!", Configuration.Formatters.XmlFormatter);
+
+            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
+
+            if (res_type != "application")
+                return BadRequest("Resource type not valid, only the 'application' resource type is valid for this route");
+
+            if (xmlFromBody.XPathSelectElement("/name") == null)
+                return Content(HttpStatusCode.BadRequest, "Missing required 'name' element in body!", Configuration.Formatters.XmlFormatter);
+
+            String name = xmlFromBody.XPathSelectElement("/name").Value;
+
+            if (res_type != "application")
+                return Content(HttpStatusCode.BadRequest, "res_type element not valid, can only be 'application' for this route", Configuration.Formatters.XmlFormatter);
+
+            if (String.IsNullOrEmpty(name))
+                return Content(HttpStatusCode.BadRequest, "Missing required 'name' element in body!", Configuration.Formatters.XmlFormatter);
+            */
+            SqlConnection conn = null;
+            
             Application foundApplication = DB_utils.findApplication(applicationName);
             if (foundApplication == null)
-                return NotFound();
 
-            SqlConnection conn = null;
+                return Content(HttpStatusCode.NotFound, "Could not find application with name " + applicationName, Configuration.Formatters.XmlFormatter);
 
             try
             {
@@ -203,11 +210,9 @@ namespace somiod.Controllers
                 command.Connection = conn;
                 command.ExecuteNonQuery();
 
-                //TODO: Verificar se o registo foi realmente alterado?
-
                 conn.Close();
 
-                return Ok(DB_utils.findApplication(name));
+                return Content(HttpStatusCode.OK, DB_utils.findApplication(name), Configuration.Formatters.XmlFormatter);
             }
             catch (Exception)
             {
@@ -227,7 +232,7 @@ namespace somiod.Controllers
             DB_utils.findApplication(applicationName);
             Application foundApplication = DB_utils.findApplication(applicationName);
             if (foundApplication == null)
-                return NotFound();
+                return Content(HttpStatusCode.NotFound, "Could not find module with name " + applicationName, Configuration.Formatters.XmlFormatter);
 
             if (DB_utils.hasModules(applicationName))
                 return Content(HttpStatusCode.Conflict, "Given application has modules related to it!");
@@ -252,7 +257,7 @@ namespace somiod.Controllers
 
                 conn.Close();
 
-                return Ok();
+                return Content(HttpStatusCode.OK, "", Configuration.Formatters.XmlFormatter);
             }
             catch (Exception)
             {
@@ -265,14 +270,11 @@ namespace somiod.Controllers
         }
         #endregion
 
-
-
-
         #region Modules
         //GET api/somiod/<applicationName>
         [Route("{applicationName}")]
-        public IEnumerable<Module> GetAllModulesFromApplication(string applicationName)
-        {
+        public IHttpActionResult GetAllModulesFromApplication(string applicationName)
+        {            
             Application foundApplication = DB_utils.findApplication(applicationName);
             if (foundApplication == null)
                 return null;
@@ -306,7 +308,8 @@ namespace somiod.Controllers
                 reader.Close();
                 conn.Close();
 
-                return modules;
+                return Content(HttpStatusCode.OK, modules, Configuration.Formatters.XmlFormatter);
+
             }
             catch (Exception)
             {
@@ -321,23 +324,143 @@ namespace somiod.Controllers
         //POST api/somiod/<applicationName>
         //Body : Resource object, fields of interest (res_type, name)
         [Route("{applicationName}")]
-        public IHttpActionResult PostModule(string applicationName, [FromBody] Resource resource)
+        public IHttpActionResult PostModule(string applicationName, [FromBody] XElement xmlFromBody)
         {
-            if (resource.res_type != "module")
-                return BadRequest("Resource type not valid, can only be 'module' for this route");
 
-            if (resource.name == null)
-                return BadRequest("Missing 'name' value in body is required!");
+            if (xmlFromBody.XPathSelectElement("/res_type") == null)
+                return Content(HttpStatusCode.BadRequest, "Missing required 'res_type' element in body!", Configuration.Formatters.XmlFormatter);
 
-            //TODO: Can there exist more than 1 module with the same name
+            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
 
-            return Ok(resource);
+            if (res_type != "module")
+                return BadRequest("Resource type not valid, only the 'module' resource type is valid for this route");
+
+            if (xmlFromBody.XPathSelectElement("/name") == null)
+                return Content(HttpStatusCode.BadRequest, "Missing required 'name' element in body!", Configuration.Formatters.XmlFormatter);
+
+            String name = xmlFromBody.XPathSelectElement("/name").Value;
+
+            if (DB_utils.existsModuleInApplication(applicationName, name))
+                return Content(HttpStatusCode.Conflict, "An module with such name already exists for this application!", Configuration.Formatters.XmlFormatter);
+
+            SqlConnection conn = null;
+
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+
+                command.CommandText = "INSERT INTO modules (Name,applicationID) VALUES (@name,@applicationID)";
+                command.Parameters.AddWithValue("@name", name);
+                command.Parameters.AddWithValue("@applicationID", DB_utils.getApplicationId(applicationName));
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+                command.ExecuteNonQuery();
+                conn.Close();
+
+                return Content(HttpStatusCode.OK, DB_utils.findModule(name), Configuration.Formatters.XmlFormatter);
+            }
+            catch (Exception)
+            {
+                return InternalServerError();
+            }
+            finally
+            {
+                conn.Close();
+            }
+
         }
 
         [Route("{applicationName}/{moduleName}")]
-        public IHttpActionResult PutModule(string applicationName, string moduleName, [FromBody] Resource resource)
+        public IHttpActionResult PutModule(string applicationName, string moduleName, [FromBody] XElement xmlFromBody)
         {
-            return InternalServerError();
+
+            if (xmlFromBody.XPathSelectElement("/res_type") == null)
+                return Content(HttpStatusCode.BadRequest, "Missing required 'res_type' element in body!", Configuration.Formatters.XmlFormatter);
+
+            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
+
+            if (res_type != "module")
+                return BadRequest("Resource type not valid, only the 'module' resource type is valid for this route");
+
+            if (xmlFromBody.XPathSelectElement("/name") == null)
+                return Content(HttpStatusCode.BadRequest, "Missing required 'name' element in body!", Configuration.Formatters.XmlFormatter);
+
+            String name = xmlFromBody.XPathSelectElement("/name").Value;          
+
+            SqlConnection conn = null;
+
+            Module foundModule = DB_utils.findModule(moduleName);
+            if (foundModule == null)
+                return Content(HttpStatusCode.NotFound, "Could not find module with name " + moduleName, Configuration.Formatters.XmlFormatter);
+
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+
+                command.CommandText = "UPDATE Modules SET name = @name WHERE id = @id";
+                command.Parameters.AddWithValue("@name", name);
+                command.Parameters.AddWithValue("@id", foundModule.Id);
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+                command.ExecuteNonQuery();
+
+                conn.Close();
+
+                return Content(HttpStatusCode.OK, DB_utils.findModule(name), Configuration.Formatters.XmlFormatter);
+            }
+            catch (Exception)
+            {
+                return InternalServerError();
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
+
+        //soft delete
+        //DELETE api/somiod/<applicationName>/<moduleName>
+        [Route("{applicationName}/{moduleName}")]
+        public IHttpActionResult DeleteModule(string moduleName)
+        {
+            DB_utils.findModule(moduleName);
+            Module foundModule = DB_utils.findModule(moduleName);
+            if (foundModule == null)
+                return Content(HttpStatusCode.NotFound, "Could not find module with name " + moduleName, Configuration.Formatters.XmlFormatter);
+
+            SqlConnection conn = null;
+
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+
+                command.CommandText = "DELETE FROM Modules WHERE id = @id";
+                command.Parameters.AddWithValue("@id", foundModule.Id);
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+                command.ExecuteNonQuery();
+              
+                conn.Close();
+
+                return Content(HttpStatusCode.OK, "", Configuration.Formatters.XmlFormatter);
+            }
+            catch (Exception)
+            {
+                return InternalServerError();
+            }
+            finally
+            {
+                conn.Close();
+            }
         }
         #endregion
 
