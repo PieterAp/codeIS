@@ -82,7 +82,7 @@ namespace somiod.Controllers
 
             if (res_type != "application")
                 return Content(HttpStatusCode.BadRequest, "res_type element not valid, can only be 'application' for this route", Configuration.Formatters.XmlFormatter);
-           
+
             if (DB_utils.existsApplication(name))
                 return Content(HttpStatusCode.Conflict, "An application with such name already exists!", Configuration.Formatters.XmlFormatter);
 
@@ -226,7 +226,7 @@ namespace somiod.Controllers
         //GET api/somiod/<applicationName>
         [Route("{applicationName}")]
         public IHttpActionResult GetAllModulesFromApplication(string applicationName)
-        {            
+        {
             Application foundApplication = DB_utils.findApplication(applicationName);
             if (foundApplication == null)
                 return null;
@@ -247,6 +247,11 @@ namespace somiod.Controllers
                 command.Connection = conn;
 
                 SqlDataReader reader = command.ExecuteReader();
+
+                //return success but no results when the sql query hasn't returned any data
+                if (!reader.HasRows)
+                    return Ok();
+
                 while (reader.Read())
                 {
                     module = new Module();
@@ -279,16 +284,7 @@ namespace somiod.Controllers
         public IHttpActionResult PostModule(string applicationName, [FromBody] XElement xmlFromBody)
         {
 
-            if (xmlFromBody.XPathSelectElement("/res_type") == null)
-                return Content(HttpStatusCode.BadRequest, "Missing required 'res_type' element in body!", Configuration.Formatters.XmlFormatter);
-
             String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
-
-            if (res_type != "module")
-                return BadRequest("Resource type not valid, only the 'module' resource type is valid for this route");
-
-            if (xmlFromBody.XPathSelectElement("/name") == null)
-                return Content(HttpStatusCode.BadRequest, "Missing required 'name' element in body!", Configuration.Formatters.XmlFormatter);
 
             String name = xmlFromBody.XPathSelectElement("/name").Value;
 
@@ -312,7 +308,7 @@ namespace somiod.Controllers
                 command.ExecuteNonQuery();
                 conn.Close();
 
-                return Content(HttpStatusCode.OK, DB_utils.findModule(name), Configuration.Formatters.XmlFormatter);
+                return Content(HttpStatusCode.OK, DB_utils.findModule(applicationName, name), Configuration.Formatters.XmlFormatter);
             }
             catch (Exception)
             {
@@ -325,26 +321,22 @@ namespace somiod.Controllers
 
         }
 
+        //PUT api/somiod/<applicationName>/<moduleName>
+        //Body : Resource object, fields of interest (res_type, name)
         [Route("{applicationName}/{moduleName}")]
         public IHttpActionResult PutModule(string applicationName, string moduleName, [FromBody] XElement xmlFromBody)
         {
 
-            if (xmlFromBody.XPathSelectElement("/res_type") == null)
-                return Content(HttpStatusCode.BadRequest, "Missing required 'res_type' element in body!", Configuration.Formatters.XmlFormatter);
-
             String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
 
-            if (res_type != "module")
-                return BadRequest("Resource type not valid, only the 'module' resource type is valid for this route");
-
-            if (xmlFromBody.XPathSelectElement("/name") == null)
-                return Content(HttpStatusCode.BadRequest, "Missing required 'name' element in body!", Configuration.Formatters.XmlFormatter);
-
-            String name = xmlFromBody.XPathSelectElement("/name").Value;          
+            String name = xmlFromBody.XPathSelectElement("/name").Value;
 
             SqlConnection conn = null;
 
-            Module foundModule = DB_utils.findModule(moduleName);
+            if(DB_utils.existsModuleInApplication(applicationName, name))
+                return Content(HttpStatusCode.Conflict, "An module with such name already exists for this application!", Configuration.Formatters.XmlFormatter);
+
+            Module foundModule = DB_utils.findModule(applicationName, moduleName);
             if (foundModule == null)
                 return Content(HttpStatusCode.NotFound, "Could not find module with name " + moduleName, Configuration.Formatters.XmlFormatter);
 
@@ -364,7 +356,7 @@ namespace somiod.Controllers
 
                 conn.Close();
 
-                return Content(HttpStatusCode.OK, DB_utils.findModule(name), Configuration.Formatters.XmlFormatter);
+                return Content(HttpStatusCode.OK, DB_utils.findModule(applicationName, name), Configuration.Formatters.XmlFormatter);
             }
             catch (Exception)
             {
@@ -379,10 +371,10 @@ namespace somiod.Controllers
         //soft delete
         //DELETE api/somiod/<applicationName>/<moduleName>
         [Route("{applicationName}/{moduleName}")]
-        public IHttpActionResult DeleteModule(string moduleName)
+        public IHttpActionResult DeleteModule(string applicationName, string moduleName)
         {
-            DB_utils.findModule(moduleName);
-            Module foundModule = DB_utils.findModule(moduleName);
+            DB_utils.findModule(applicationName, moduleName);
+            Module foundModule = DB_utils.findModule(applicationName, moduleName);
             if (foundModule == null)
                 return Content(HttpStatusCode.NotFound, "Could not find module with name " + moduleName, Configuration.Formatters.XmlFormatter);
 
@@ -395,12 +387,13 @@ namespace somiod.Controllers
 
                 SqlCommand command = new SqlCommand();
 
-                command.CommandText = "DELETE FROM Modules WHERE id = @id";
+                command.CommandText = "DELETE M FROM Modules M LEFTJOIN Applications A ON A.id=M.applicationID WHERE id = @id AND A.id = @applicationID";
                 command.Parameters.AddWithValue("@id", foundModule.Id);
+                command.Parameters.AddWithValue("@applicationID", DB_utils.getApplicationId(applicationName));
                 command.CommandType = System.Data.CommandType.Text;
                 command.Connection = conn;
                 command.ExecuteNonQuery();
-              
+
                 conn.Close();
 
                 return Content(HttpStatusCode.OK, "", Configuration.Formatters.XmlFormatter);
@@ -417,7 +410,202 @@ namespace somiod.Controllers
         #endregion
 
         #region Subscriptions
+        //GET api/somiod/<applicationName>/<moduleName>/<subscriptionName>
+        [Route("{applicationName}/{moduleName}")]
+        public IHttpActionResult GetAllSubcriptionsFromModule(string applicationName, string moduleName)
+        {
+            Application foundApplication = DB_utils.findApplication(applicationName);
+            if (foundApplication == null)
+                return null;
 
+            Module foundModule = DB_utils.findModule(applicationName,moduleName);
+            if (foundModule == null)
+                return null;
+
+            List<Subscription> subscriptions = new List<Subscription>();
+            Subscription subscription;
+            SqlConnection conn = null;
+
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+                command.CommandText = "SELECT * FROM Subscriptions WHERE moduleID = @moduleID";
+                command.Parameters.AddWithValue("@moduleID", foundModule.Id);
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+
+                SqlDataReader reader = command.ExecuteReader();
+
+                //return success but no results when the sql query hasn't returned any data
+                if (!reader.HasRows)
+                    return Ok();
+
+                while (reader.Read())
+                {
+                    subscription = new Subscription();
+                    subscription.Id = (int)reader["Id"];
+                    subscription.name = (string)reader["name"];
+                    subscription.creation_dt = (DateTime)reader["creation_dt"];
+                    subscription.moduleID = (int)reader["moduleID"];
+                    subscription.eventType = (string)reader["eventType"];
+                    subscription.endpoint = (string)reader["endpoint"];
+
+                    subscriptions.Add(subscription);
+                }
+                reader.Close();
+                conn.Close();
+
+                return Content(HttpStatusCode.OK, subscriptions, Configuration.Formatters.XmlFormatter);
+
+            }
+            catch (Exception)
+            {
+                return InternalServerError();
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
+
+        //POST api/somiod/<applicationName>/<moduleName>/<subscriptionName>
+        [Route("{applicationName}/{moduleName}")]
+        public IHttpActionResult PostSubscription(string applicationName, string moduleName, [FromBody] XElement xmlFromBody)
+        {
+
+            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
+            String name = xmlFromBody.XPathSelectElement("/name").Value;
+            String eventType = xmlFromBody.XPathSelectElement("/eventType").Value;
+
+
+            if (DB_utils.existsSubscriptionInModule(moduleName, name))
+                return Content(HttpStatusCode.Conflict, "An Subscription with such name already exists for this module!", Configuration.Formatters.XmlFormatter);
+
+            SqlConnection conn = null;
+
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+
+                command.CommandText = "INSERT INTO subscriptions (name,eventType,endPoint,moduleID) VALUES (@name,@eventType,@endPoint,@moduleID)";
+                command.Parameters.AddWithValue("@name", name);
+                command.Parameters.AddWithValue("@eventType", eventType);
+                command.Parameters.AddWithValue("@endPoint", "mqtt://192.168.1.2:1883");
+                command.Parameters.AddWithValue("@moduleID", DB_utils.getModuleId(moduleName));
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+                command.ExecuteNonQuery();
+                conn.Close();
+
+                return Content(HttpStatusCode.OK, DB_utils.findSubscription(applicationName, moduleName, name), Configuration.Formatters.XmlFormatter);
+            }
+            catch (Exception e)
+            {
+                return InternalServerError(e);
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
+
+        //PUT api/somiod/<applicationName>/<moduleName>/<subscriptionName>
+        //Body : Resource object, fields of interest (res_type, name)
+        [Route("{applicationName}/{moduleName}/{subscriptionName}")]
+        public IHttpActionResult PutSubscription(string applicationName, string moduleName, string subscriptionName, [FromBody] XElement xmlFromBody)
+        {
+
+            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
+
+            String name = xmlFromBody.XPathSelectElement("/name").Value;
+
+            SqlConnection conn = null;
+
+            if (DB_utils.existsSubscriptionInModule(moduleName, name))
+                return Content(HttpStatusCode.Conflict, "An subscription with such name already exists for this module!", Configuration.Formatters.XmlFormatter);
+
+            Subscription foundSubscription = DB_utils.findSubscription(applicationName, moduleName, subscriptionName);
+            if (foundSubscription == null)
+                return Content(HttpStatusCode.NotFound, "Could not find Subscription with name " + subscriptionName, Configuration.Formatters.XmlFormatter);
+
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+
+                command.CommandText = "UPDATE Subscriptions SET name = @name WHERE id = @id";
+                command.Parameters.AddWithValue("@name", name);
+                command.Parameters.AddWithValue("@id", foundSubscription.Id);
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+                command.ExecuteNonQuery();
+
+                conn.Close();
+
+                return Content(HttpStatusCode.OK, DB_utils.findSubscription(applicationName, moduleName, name), Configuration.Formatters.XmlFormatter);
+            }
+            catch (Exception)
+            {
+                return InternalServerError();
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
+
+        //soft delete
+        //DELETE api/somiod/<applicationName>/<moduleName>/<subscriptionName>
+        [Route("{applicationName}/{moduleName}/{subscriptionName}")]
+        public IHttpActionResult DeleteSubscription(string applicationName, string moduleName, string subscriptionName)
+        {
+
+            Subscription foundSubscription = DB_utils.findSubscription(applicationName, moduleName, subscriptionName);
+            if (foundSubscription == null)
+                return Content(HttpStatusCode.NotFound, "Could not find subscription with name " + subscriptionName, Configuration.Formatters.XmlFormatter);
+
+            SqlConnection conn = null;
+
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+
+                command.CommandText = "DELETE S FROM Subscriptions S " +
+                    "LEFT JOIN Modules M ON S.moduleID = M.Id " +
+                    "LEFT JOIN Applications A ON A.Id = M.applicationID " +
+                    "WHERE S.id = @id AND M.id = @moduleID AND A.id = @applicationID";
+
+                command.Parameters.AddWithValue("@id", foundSubscription.Id);
+                command.Parameters.AddWithValue("@moduleID", DB_utils.getModuleId(moduleName));
+                command.Parameters.AddWithValue("@applicationID", DB_utils.getApplicationId(applicationName));
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+                command.ExecuteNonQuery();
+
+                conn.Close();
+
+                return Content(HttpStatusCode.OK, "", Configuration.Formatters.XmlFormatter);
+            }
+            catch (Exception e)
+            {
+                return InternalServerError(e);
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
         #endregion
 
     }
