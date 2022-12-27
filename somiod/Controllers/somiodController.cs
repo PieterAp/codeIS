@@ -27,13 +27,18 @@ namespace somiod.Controllers
     public class somiodController : ApiController
     {
         string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["somiod.Properties.Settings.ConnStr"].ConnectionString;
+        error errorMessage;
+        string applicationXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Application\\application.xsd";
+        //module.xml and module.xsd have not been created 
+        //string modullleXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Application\\module.xsd";
+
 
         #region Applications
         //GET api/somiod
         [Route("")]
         public IHttpActionResult GetAllApplications()
         {
-            List<Application> applications = new List<Application>();
+            Applications applications = new Applications();
             Application application;
             SqlConnection conn = null;
 
@@ -79,26 +84,29 @@ namespace somiod.Controllers
         }
 
         //POST api/somiod/
-        //Body(xml): res_type, name
+        //Body(xml): application
         [Route("")]
         public IHttpActionResult PostApplication([FromBody] XElement xmlFromBody)
         {
-            //Failed attempt to reuse code, using the function checkBodyElems in Utils/DB_utils
-            /*
-            RequiredFields requiredFields = new RequiredFields();
-            requiredFields.name = true;
-            requiredFields.res_type = true;
-
-            ResourceAux resourceAux = DB_utils.checkBodyElems(xmlFromBody, requiredFields);
-            if (resourceAux.errorMessage != null)
+            if (xmlFromBody == null)
             {
-                return Content(resourceAux.errortype, resourceAux.errorMessage, Configuration.Formatters.XmlFormatter);
+                errorMessage = new error();
+                errorMessage.message = "Body content is not well formated";
+                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
 
-            String res_type = resourceAux.resourcesReturnFields.res_type;
-            String name = resourceAux.resourcesReturnFields.name;
-            */
+            //Validate body contents using XSD
+            XML_handler handler = new XML_handler(xmlFromBody, applicationXSDPath);
+            if (!handler.ValidateXML())
+            {
+                errorMessage = new error();
+                errorMessage.message = handler.ValidationMessage;
+                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
 
+
+            //Not sure whether we're going to need these, just gonna keep them for now
+            /*
             if (xmlFromBody.XPathSelectElement("/res_type") == null)
                 return Content(HttpStatusCode.BadRequest, "Missing required 'res_type' element in body!", Configuration.Formatters.XmlFormatter);
 
@@ -114,10 +122,17 @@ namespace somiod.Controllers
 
             if (String.IsNullOrEmpty(name))
                 return Content(HttpStatusCode.BadRequest, "Missing required 'name' element in body!", Configuration.Formatters.XmlFormatter);
+            */
 
-            if (DB_utils.existsApplication(name))
-                return Content(HttpStatusCode.Conflict, "An application with such name already exists!", Configuration.Formatters.XmlFormatter);
-            
+            if (DB_utils.existsApplication(xmlFromBody.XPathSelectElement("/name").Value))
+            {
+                errorMessage = new error();
+                errorMessage.message = "An application with such name already exists!";
+                return Content(HttpStatusCode.Conflict, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
+
+            String name = xmlFromBody.XPathSelectElement("/name").Value;
+
             SqlConnection conn = null;
 
             try
@@ -149,12 +164,24 @@ namespace somiod.Controllers
 
         //PUT api/somiod/<applicationName>
         //Header: applicationName
-        //Body(xml): res_type, name
+        //Body(xml): application
         [Route("{applicationName}")]
-        public IHttpActionResult PutApplication(string applicationName, [FromBody] Resource resource)
+        public IHttpActionResult PutApplication(string applicationName, [FromBody] XElement xmlFromBody)
         {
+            //Validate body contents using XSD
+            XML_handler handler = new XML_handler(xmlFromBody, applicationXSDPath);
+            if (!handler.ValidateXML())
+            {
+                errorMessage = new error();
+                errorMessage.message = handler.ValidationMessage;
+                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
+
+            String name = xmlFromBody.XPathSelectElement("/name").Value;
+            /*
             if (resource.res_type != "application")
                 return BadRequest("Resource type not valid, can only be 'application' for this route");
+            */
 
             Application foundApplication = DB_utils.findApplication(applicationName);
             if (foundApplication == null)
@@ -170,7 +197,7 @@ namespace somiod.Controllers
                 SqlCommand command = new SqlCommand();
 
                 command.CommandText = "UPDATE Applications SET name = @name WHERE id = @id";
-                command.Parameters.AddWithValue("@name", resource.name);
+                command.Parameters.AddWithValue("@name", name);
                 command.Parameters.AddWithValue("@id", foundApplication.Id);
                 command.CommandType = System.Data.CommandType.Text;
                 command.Connection = conn;
@@ -180,7 +207,7 @@ namespace somiod.Controllers
 
                 conn.Close();
 
-                return Ok(DB_utils.findApplication(resource.name));
+                return Ok(DB_utils.findApplication(name));
             }
             catch (Exception)
             {
