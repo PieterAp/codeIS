@@ -18,6 +18,29 @@ namespace somiod.Controllers
         string applicationXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Application\\application.xsd";
         string moduleXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Module\\module.xsd";
 
+        #region Subscription/Data
+        //POST api/somiod/<applicationName>/<moduleName>
+        [Route("{applicationName}/{moduleName}")]
+        public IHttpActionResult PostSubscriptionData(string applicationName, string moduleName, [FromBody] XElement xmlFromBody)
+        {
+            if (xmlFromBody == null)
+            {
+                errorMessage = new error();
+                errorMessage.message = "Body content is not well formated";
+                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
+
+            String type = xmlFromBody.Name.LocalName;
+            if (type == "Data")
+                return PostData(applicationName, moduleName, xmlFromBody);
+            else if (type == "Subscription")
+                return PostSubscription(applicationName, moduleName, xmlFromBody);
+
+            return InternalServerError();
+        }
+
+        #endregion
+
         #region Applications
         //GET api/somiod
         [Route("")]
@@ -491,70 +514,7 @@ namespace somiod.Controllers
         }
         #endregion
 
-        #region Subscriptions
-        //GET api/somiod/<applicationName>/<moduleName>/<subscriptionName>
-        [Route("{applicationName}/{moduleName}")]
-        public IHttpActionResult GetAllSubcriptionsFromModule(string applicationName, string moduleName)
-        {
-            Application foundApplication = DB_utils.findApplication(applicationName);
-            if (foundApplication == null)
-                return null;
-
-            Module foundModule = DB_utils.findModule(applicationName, moduleName);
-            if (foundModule == null)
-                return null;
-
-            List<Subscription> subscriptions = new List<Subscription>();
-            Subscription subscription;
-            SqlConnection conn = null;
-
-            try
-            {
-                conn = new SqlConnection(connectionString);
-                conn.Open();
-
-                SqlCommand command = new SqlCommand();
-                command.CommandText = "SELECT * FROM Subscriptions WHERE moduleID = @moduleID";
-                command.Parameters.AddWithValue("@moduleID", foundModule.Id);
-                command.CommandType = System.Data.CommandType.Text;
-                command.Connection = conn;
-
-                SqlDataReader reader = command.ExecuteReader();
-
-                //return success but no results when the sql query hasn't returned any data
-                if (!reader.HasRows)
-                    return Ok();
-
-                while (reader.Read())
-                {
-                    subscription = new Subscription();
-                    subscription.Id = (int)reader["Id"];
-                    subscription.name = (string)reader["name"];
-                    subscription.creation_dt = (DateTime)reader["creation_dt"];
-                    subscription.moduleID = (int)reader["moduleID"];
-                    subscription.eventType = (string)reader["eventType"];
-                    subscription.endpoint = (string)reader["endpoint"];
-
-                    subscriptions.Add(subscription);
-                }
-                reader.Close();
-                conn.Close();
-
-                return Content(HttpStatusCode.OK, subscriptions, Configuration.Formatters.XmlFormatter);
-
-            }
-            catch (Exception)
-            {
-                return InternalServerError();
-            }
-            finally
-            {
-                conn.Close();
-            }
-        }
-
-        //POST api/somiod/<applicationName>/<moduleName>/<subscriptionName>
-        [Route("{applicationName}/{moduleName}")]
+        #region Subscriptions             
         public IHttpActionResult PostSubscription(string applicationName, string moduleName, [FromBody] XElement xmlFromBody)
         {
 
@@ -571,16 +531,16 @@ namespace somiod.Controllers
 
             //get prefix 
             string toBeSearched = "://";
-            int ix = endPoint.IndexOf(toBeSearched);       
-            String ip ;
-            String prefix ;
+            int ix = endPoint.IndexOf(toBeSearched);
+            String ip;
+            String prefix;
             String endPointPrefix;
             String rawEndPoint;
 
             if (ix != -1)
             {
-                ip = endPoint.Substring(ix + toBeSearched.Length, endPoint.Length-ix-toBeSearched.Length);
-                prefix = endPoint.Substring(0,ix);               
+                ip = endPoint.Substring(ix + toBeSearched.Length, endPoint.Length - ix - toBeSearched.Length);
+                prefix = endPoint.Substring(0, ix);
                 rawEndPoint = ip;
                 endPointPrefix = prefix;
             }
@@ -625,57 +585,6 @@ namespace somiod.Controllers
             }
         }
 
-        //PUT api/somiod/<applicationName>/<moduleName>/<subscriptionName>
-        //Body : Resource object, fields of interest (res_type, name)
-        [Route("{applicationName}/{moduleName}/{subscriptionName}")]
-        public IHttpActionResult PutSubscription(string applicationName, string moduleName, string subscriptionName, [FromBody] XElement xmlFromBody)
-        {
-            if (xmlFromBody == null)
-            {
-                errorMessage = new error();
-                errorMessage.message = "Body content is not well formated";
-                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
-            }
-
-            String name = xmlFromBody.XPathSelectElement("/name").Value;
-
-            SqlConnection conn = null;
-
-            if (DB_utils.existsSubscriptionInModule(moduleName, name))
-                return Content(HttpStatusCode.Conflict, "An subscription with such name already exists for this module!", Configuration.Formatters.XmlFormatter);
-
-            Subscription foundSubscription = DB_utils.findSubscription(applicationName, moduleName, subscriptionName);
-            if (foundSubscription == null)
-                return Content(HttpStatusCode.NotFound, "Could not find Subscription with name " + subscriptionName, Configuration.Formatters.XmlFormatter);
-
-            try
-            {
-                conn = new SqlConnection(connectionString);
-                conn.Open();
-
-                SqlCommand command = new SqlCommand();
-
-                command.CommandText = "UPDATE Subscriptions SET name = @name WHERE id = @id";
-                command.Parameters.AddWithValue("@name", name);
-                command.Parameters.AddWithValue("@id", foundSubscription.Id);
-                command.CommandType = System.Data.CommandType.Text;
-                command.Connection = conn;
-                command.ExecuteNonQuery();
-
-                conn.Close();
-
-                return Content(HttpStatusCode.OK, DB_utils.findSubscription(applicationName, moduleName, name), Configuration.Formatters.XmlFormatter);
-            }
-            catch (Exception)
-            {
-                return InternalServerError();
-            }
-            finally
-            {
-                conn.Close();
-            }
-        }
-
         //soft delete
         //DELETE api/somiod/<applicationName>/<moduleName>/<subscriptionName>
         [Route("{applicationName}/{moduleName}/{subscriptionName}")]
@@ -710,6 +619,48 @@ namespace somiod.Controllers
                 conn.Close();
 
                 return Content(HttpStatusCode.OK, "", Configuration.Formatters.XmlFormatter);
+            }
+            catch (Exception e)
+            {
+                return InternalServerError(e);
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
+        #endregion
+
+        #region Data       
+        public IHttpActionResult PostData(string applicationName, string moduleName, [FromBody] XElement xmlFromBody)
+        {
+            if (xmlFromBody == null)
+            {
+                errorMessage = new error();
+                errorMessage.message = "Body content is not well formated";
+                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
+
+            String content = xmlFromBody.XPathSelectElement("/content").Value;
+
+            SqlConnection conn = null;
+
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+
+                command.CommandText = "INSERT INTO data (content,moduleID) VALUES (@content,@moduleID)";
+                command.Parameters.AddWithValue("@content", content);
+                command.Parameters.AddWithValue("@moduleID", DB_utils.getModuleId(moduleName));
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+                command.ExecuteNonQuery();
+                conn.Close();
+
+                return Content(HttpStatusCode.Created, content, Configuration.Formatters.XmlFormatter);
             }
             catch (Exception e)
             {

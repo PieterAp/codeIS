@@ -94,7 +94,7 @@ namespace somiod.Utils
             }
 
         }
-
+        
         public static Application findApplication(string applicationName)
         {
             Application application = new Application();
@@ -184,7 +184,7 @@ namespace somiod.Utils
             }
         }
 
-        public static Subscription findSubscription(string applicationName, string moduleName,string subscriptionName)
+        public static Subscription findSubscription(string applicationName, string moduleName, string subscriptionName)
         {
             Subscription subscription = new Subscription();
             SqlConnection conn = null;
@@ -237,7 +237,7 @@ namespace somiod.Utils
                 conn.Close();
             }
         }
-
+       
         public static Boolean existsSubscriptionInModule(string moduleName, string name)
         {
             int moduleID = 0;

@@ -108,6 +108,7 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Models\Application.cs" />
+    <Compile Include="Models\Data.cs" />
     <Compile Include="Models\error.cs" />
     <Compile Include="Models\Module.cs" />
     <Compile Include="Models\Resource.cs" />
