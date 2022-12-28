@@ -96,6 +96,7 @@
     </Content>
     <Content Include="Global.asax" />
     <Content Include="Utils\XMLandXSD\Application\application.xml" />
+    <Content Include="Utils\XMLandXSD\Data\data.xml" />
     <Content Include="Utils\XMLandXSD\Module\module.xml" />
     <Content Include="Web.config" />
   </ItemGroup>
@@ -128,6 +129,9 @@
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <None Include="Utils\XMLandXSD\Data\data.xsd">
+      <SubType>Designer</SubType>
     </None>
     <None Include="Utils\XMLandXSD\Module\module.xsd">
       <SubType>Designer</SubType>
