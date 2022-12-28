@@ -15,10 +15,8 @@ namespace somiod.Controllers
     {
         string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["somiod.Properties.Settings.ConnStr"].ConnectionString;
         error errorMessage;
-        string applicationXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Application\\application.xsd";
-        //module.xml and module.xsd have not been created 
-        //string modullleXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Application\\module.xsd";
-
+        string applicationXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Application\\application.xsd";       
+        string moduleXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Module\\module.xsd";
 
         #region Applications
         //GET api/somiod
@@ -155,6 +153,14 @@ namespace somiod.Controllers
         [Route("{applicationName}")]
         public IHttpActionResult PutApplication(string applicationName, [FromBody] XElement xmlFromBody)
         {
+
+            if (xmlFromBody == null)
+            {
+                errorMessage = new error();
+                errorMessage.message = "Body content is not well formated";
+                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
+
             //Validate body contents using XSD
             XML_handler handler = new XML_handler(xmlFromBody, applicationXSDPath);
             if (!handler.ValidateXML())
@@ -332,8 +338,23 @@ namespace somiod.Controllers
         public IHttpActionResult PostModule(string applicationName, [FromBody] XElement xmlFromBody)
         {
 
-            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
+            if (xmlFromBody == null)
+            {
+                errorMessage = new error();
+                errorMessage.message = "Body content is not well formated";
+                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
 
+            //Validate body contents using XSD
+            XML_handler handler = new XML_handler(xmlFromBody, moduleXSDPath);
+            if (!handler.ValidateXML())
+            {
+                errorMessage = new error();
+                errorMessage.message = handler.ValidationMessage;
+                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
+
+            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
             String name = xmlFromBody.XPathSelectElement("/name").Value;
 
             if (DB_utils.existsModuleInApplication(applicationName, name))
@@ -375,8 +396,23 @@ namespace somiod.Controllers
         public IHttpActionResult PutModule(string applicationName, string moduleName, [FromBody] XElement xmlFromBody)
         {
 
-            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
+            if (xmlFromBody == null)
+            {
+                errorMessage = new error();
+                errorMessage.message = "Body content is not well formated";
+                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
 
+            //Validate body contents using XSD
+            XML_handler handler = new XML_handler(xmlFromBody, moduleXSDPath);
+            if (!handler.ValidateXML())
+            {
+                errorMessage = new error();
+                errorMessage.message = handler.ValidationMessage;
+                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
+
+            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
             String name = xmlFromBody.XPathSelectElement("/name").Value;
 
             SqlConnection conn = null;
@@ -524,6 +560,13 @@ namespace somiod.Controllers
         public IHttpActionResult PostSubscription(string applicationName, string moduleName, [FromBody] XElement xmlFromBody)
         {
 
+            if (xmlFromBody == null)
+            {
+                errorMessage = new error();
+                errorMessage.message = "Body content is not well formated";
+                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
+
             String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
             String name = xmlFromBody.XPathSelectElement("/name").Value;
             String eventType = xmlFromBody.XPathSelectElement("/eventType").Value;
@@ -568,9 +611,14 @@ namespace somiod.Controllers
         [Route("{applicationName}/{moduleName}/{subscriptionName}")]
         public IHttpActionResult PutSubscription(string applicationName, string moduleName, string subscriptionName, [FromBody] XElement xmlFromBody)
         {
+            if (xmlFromBody == null)
+            {
+                errorMessage = new error();
+                errorMessage.message = "Body content is not well formated";
+                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
 
             String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
-
             String name = xmlFromBody.XPathSelectElement("/name").Value;
 
             SqlConnection conn = null;
