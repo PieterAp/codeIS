@@ -423,5 +423,58 @@ namespace somiod.Utils
                 conn.Close();
             }
         }
+
+        public static List<Subscription> getSubscriptionsByModule(string moduleName)
+        {
+            List<Subscription> subscriptions = new List<Subscription>();
+            Subscription subscription = new Subscription();
+            SqlConnection conn = null;
+
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+                command.CommandText = "SELECT * FROM (SELECT  *, ROW_NUMBER() OVER(PARTITION BY endpoint ORDER BY ID DESC) rn FROM Subscriptions) a WHERE rn = 1 AND a.moduleID = @moduleId";
+                command.Parameters.AddWithValue("@moduleID", getModuleId(moduleName));       
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+
+                SqlDataReader reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                {
+                    return null;
+                }
+                while (reader.Read())
+                {
+                    subscription.Id = (int)reader["Id"];
+                    subscription.name = (string)reader["name"];
+                    subscription.creation_dt = (DateTime)reader["creation_dt"];
+                    subscription.endpoint = (string)reader["endpoint"];
+                    subscription.endpointType = (string)reader["endpointType"];
+                    subscription.eventType = (string)reader["eventType"];
+                    subscription.moduleID = (int)reader["moduleID"];
+
+                    subscriptions.Add(subscription);
+                }
+
+                reader.Close();
+                conn.Close();
+
+                return subscriptions;
+            }
+            catch (Exception e)
+            {
+                e.ToString();
+                return new List<Subscription>();
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
+        
     }
 }

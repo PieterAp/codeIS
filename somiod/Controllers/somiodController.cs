@@ -529,7 +529,6 @@ namespace somiod.Controllers
             String eventType = xmlFromBody.XPathSelectElement("/eventType").Value;
             String endPoint = xmlFromBody.XPathSelectElement("/endPoint").Value;
 
-            //get prefix 
             string toBeSearched = "://";
             int ix = endPoint.IndexOf(toBeSearched);
             String ip;
@@ -575,9 +574,9 @@ namespace somiod.Controllers
 
                 return Content(HttpStatusCode.OK, DB_utils.findSubscription(applicationName, moduleName, name), Configuration.Formatters.XmlFormatter);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                return InternalServerError(e);
+                return InternalServerError();
             }
             finally
             {
@@ -659,6 +658,13 @@ namespace somiod.Controllers
                 command.Connection = conn;
                 command.ExecuteNonQuery();
                 conn.Close();
+
+                //Get all endpoints
+                List<Subscription> subscriptions = DB_utils.getSubscriptionsByModule(moduleName);
+                foreach (Subscription subscription in subscriptions)
+                {
+                    MessageBroker_utils.connectPublish(subscription.endpointType, subscription.endpoint, moduleName, content);
+                }
 
                 return Content(HttpStatusCode.Created, content, Configuration.Formatters.XmlFormatter);
             }
