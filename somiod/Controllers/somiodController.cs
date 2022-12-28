@@ -15,7 +15,7 @@ namespace somiod.Controllers
     {
         string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["somiod.Properties.Settings.ConnStr"].ConnectionString;
         error errorMessage;
-        string applicationXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Application\\application.xsd";       
+        string applicationXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Application\\application.xsd";
         string moduleXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Module\\module.xsd";
 
         #region Applications
@@ -196,7 +196,7 @@ namespace somiod.Controllers
                 return Content(HttpStatusCode.BadRequest, "Missing required 'name' element in body!", Configuration.Formatters.XmlFormatter);
             */
             SqlConnection conn = null;
-            
+
             Application foundApplication = DB_utils.findApplication(applicationName);
             if (foundApplication == null)
 
@@ -354,7 +354,6 @@ namespace somiod.Controllers
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
 
-            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
             String name = xmlFromBody.XPathSelectElement("/name").Value;
 
             if (DB_utils.existsModuleInApplication(applicationName, name))
@@ -412,12 +411,11 @@ namespace somiod.Controllers
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
 
-            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
             String name = xmlFromBody.XPathSelectElement("/name").Value;
 
             SqlConnection conn = null;
 
-            if(DB_utils.existsModuleInApplication(applicationName, name))
+            if (DB_utils.existsModuleInApplication(applicationName, name))
                 return Content(HttpStatusCode.Conflict, "An module with such name already exists for this application!", Configuration.Formatters.XmlFormatter);
 
             Module foundModule = DB_utils.findModule(applicationName, moduleName);
@@ -502,7 +500,7 @@ namespace somiod.Controllers
             if (foundApplication == null)
                 return null;
 
-            Module foundModule = DB_utils.findModule(applicationName,moduleName);
+            Module foundModule = DB_utils.findModule(applicationName, moduleName);
             if (foundModule == null)
                 return null;
 
@@ -567,10 +565,30 @@ namespace somiod.Controllers
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
 
-            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
             String name = xmlFromBody.XPathSelectElement("/name").Value;
             String eventType = xmlFromBody.XPathSelectElement("/eventType").Value;
+            String endPoint = xmlFromBody.XPathSelectElement("/endPoint").Value;
 
+            //get prefix 
+            string toBeSearched = "://";
+            int ix = endPoint.IndexOf(toBeSearched);       
+            String ip ;
+            String prefix ;
+            String endPointPrefix;
+            String rawEndPoint;
+
+            if (ix != -1)
+            {
+                ip = endPoint.Substring(ix + toBeSearched.Length, endPoint.Length-ix-toBeSearched.Length);
+                prefix = endPoint.Substring(0,ix);               
+                rawEndPoint = ip;
+                endPointPrefix = prefix;
+            }
+            else
+            {
+                rawEndPoint = endPoint;
+                endPointPrefix = "";
+            }
 
             if (DB_utils.existsSubscriptionInModule(moduleName, name))
                 return Content(HttpStatusCode.Conflict, "An Subscription with such name already exists for this module!", Configuration.Formatters.XmlFormatter);
@@ -584,10 +602,11 @@ namespace somiod.Controllers
 
                 SqlCommand command = new SqlCommand();
 
-                command.CommandText = "INSERT INTO subscriptions (name,eventType,endPoint,moduleID) VALUES (@name,@eventType,@endPoint,@moduleID)";
+                command.CommandText = "INSERT INTO subscriptions (name,eventType,endPoint,moduleID,endpointType) VALUES (@name,@eventType,@endPoint,@moduleID,@endpointType)";
                 command.Parameters.AddWithValue("@name", name);
                 command.Parameters.AddWithValue("@eventType", eventType);
-                command.Parameters.AddWithValue("@endPoint", "mqtt://192.168.1.2:1883");
+                command.Parameters.AddWithValue("@endPoint", rawEndPoint);
+                command.Parameters.AddWithValue("@endpointType", endPointPrefix);
                 command.Parameters.AddWithValue("@moduleID", DB_utils.getModuleId(moduleName));
                 command.CommandType = System.Data.CommandType.Text;
                 command.Connection = conn;
@@ -618,7 +637,6 @@ namespace somiod.Controllers
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
 
-            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
             String name = xmlFromBody.XPathSelectElement("/name").Value;
 
             SqlConnection conn = null;

@@ -2,9 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
-using System.Net;
-using System.Xml.Linq;
-using System.Xml.XPath;
 
 namespace somiod.Utils
 {
@@ -200,7 +197,7 @@ namespace somiod.Utils
                 SqlCommand command = new SqlCommand();
                 command.CommandText = "SELECT * FROM Subscriptions S " +
                     "LEFT JOIN MODULES M ON M.ID = S.moduleID " +
-                    "LEFTJOIN APLICATIONS A ON A.ID = M.applicationID " +
+                    "LEFT JOIN APPLICATIONS A ON A.ID = M.applicationID " +
                     "WHERE S.name like @subscriptionName AND M.ID = @moduleID AND A.ID = @applicationID";
 
                 command.Parameters.AddWithValue("@subscriptionName", subscriptionName);
@@ -221,6 +218,7 @@ namespace somiod.Utils
                     subscription.name = (string)reader["name"];
                     subscription.creation_dt = (DateTime)reader["creation_dt"];
                     subscription.endpoint = (string)reader["endpoint"];
+                    subscription.endpointType = (string)reader["endpointType"];
                     subscription.eventType = (string)reader["eventType"];
                     subscription.moduleID = (int)reader["moduleID"];
                 }
