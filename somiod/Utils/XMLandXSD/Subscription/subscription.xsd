@@ -3,10 +3,10 @@
   <xs:element name="subscription">
     <xs:complexType>
       <xs:sequence>
-        <xs:element name="id" type="xs:unsignedByte" />
+        <xs:element name="id" type="xs:unsignedByte" minOccurs="0" />
         <xs:element name="name" type="xs:string" />
-        <xs:element name="creation_dt" type="xs:string" />
-        <xs:element name="moduleID" type="xs:unsignedByte" />
+        <xs:element name="creation_dt" type="xs:string" minOccurs="0"/>
+        <xs:element name="moduleID" type="xs:unsignedByte" minOccurs="0" />
         <xs:element name="event" type="xs:string" />
         <xs:element name="endpoint" type="xs:string" />
       </xs:sequence>
