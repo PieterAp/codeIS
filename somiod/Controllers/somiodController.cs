@@ -14,8 +14,8 @@ namespace somiodApp.Controllers
     public class somiodController : ApiController
     {
         string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["somiod.Properties.Settings.ConnStr"].ConnectionString;
-        error errorMessage;
-        string applicationXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Application\\application.xsd";
+        Error errorMessage;
+        string applicationXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Application\\application.xsd";       
         string moduleXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Module\\module.xsd";
 
         #region Subscription/Data
@@ -25,7 +25,7 @@ namespace somiodApp.Controllers
         {
             if (xmlFromBody == null)
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "Body content is not well formated";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -92,13 +92,13 @@ namespace somiodApp.Controllers
         }
 
         //POST api/somiod/
-        //Body(xml): application
+        //Body(xml): application(required: name)
         [Route("")]
         public IHttpActionResult PostApplication([FromBody] XElement xmlFromBody)
         {
             if (xmlFromBody == null)
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "Body content is not well formated";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -107,7 +107,7 @@ namespace somiodApp.Controllers
             XML_handler handler = new XML_handler(xmlFromBody, applicationXSDPath);
             if (!handler.ValidateXML())
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = handler.ValidationMessage;
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -134,8 +134,9 @@ namespace somiodApp.Controllers
 
             if (DB_utils.existsApplication(xmlFromBody.XPathSelectElement("/name").Value))
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "An application with such name already exists!";
+
                 return Content(HttpStatusCode.Conflict, errorMessage, Configuration.Formatters.XmlFormatter);
             }
 
@@ -179,7 +180,7 @@ namespace somiodApp.Controllers
 
             if (xmlFromBody == null)
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "Body content is not well formated";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -188,7 +189,7 @@ namespace somiodApp.Controllers
             XML_handler handler = new XML_handler(xmlFromBody, applicationXSDPath);
             if (!handler.ValidateXML())
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = handler.ValidationMessage;
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -363,7 +364,7 @@ namespace somiodApp.Controllers
 
             if (xmlFromBody == null)
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "Body content is not well formated";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -372,7 +373,7 @@ namespace somiodApp.Controllers
             XML_handler handler = new XML_handler(xmlFromBody, moduleXSDPath);
             if (!handler.ValidateXML())
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = handler.ValidationMessage;
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -420,7 +421,7 @@ namespace somiodApp.Controllers
 
             if (xmlFromBody == null)
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "Body content is not well formated";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -429,7 +430,7 @@ namespace somiodApp.Controllers
             XML_handler handler = new XML_handler(xmlFromBody, moduleXSDPath);
             if (!handler.ValidateXML())
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = handler.ValidationMessage;
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -520,7 +521,7 @@ namespace somiodApp.Controllers
 
             if (xmlFromBody == null)
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "Body content is not well formated";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -587,8 +588,20 @@ namespace somiodApp.Controllers
         //soft delete
         //DELETE api/somiod/<applicationName>/<moduleName>/<subscriptionName>
         [Route("{applicationName}/{moduleName}/{subscriptionName}")]
-        public IHttpActionResult DeleteSubscription(string applicationName, string moduleName, string subscriptionName)
+        public IHttpActionResult PutSubscription(string applicationName, string moduleName, string subscriptionName, [FromBody] XElement xmlFromBody)
         {
+            if (xmlFromBody == null)
+            {
+                errorMessage = new Error();
+                errorMessage.message = "Body content is not well formated";
+                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
+
+            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
+            String name = xmlFromBody.XPathSelectElement("/name").Value;
+
+            if (DB_utils.existsSubscriptionInModule(moduleName, name))
+                return Content(HttpStatusCode.Conflict, "An subscription with such name already exists for this module!", Configuration.Formatters.XmlFormatter);
 
             Subscription foundSubscription = DB_utils.findSubscription(applicationName, moduleName, subscriptionName);
             if (foundSubscription == null)
@@ -635,7 +648,7 @@ namespace somiodApp.Controllers
         {
             if (xmlFromBody == null)
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "Body content is not well formated";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
