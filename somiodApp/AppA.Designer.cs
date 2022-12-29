@@ -41,18 +41,19 @@
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.txtEndpoint = new System.Windows.Forms.TextBox();
             this.label7 = new System.Windows.Forms.Label();
-            this.txtEvent = new System.Windows.Forms.TextBox();
-            this.label6 = new System.Windows.Forms.Label();
             this.cbModules = new System.Windows.Forms.ComboBox();
             this.label4 = new System.Windows.Forms.Label();
             this.btnAddSubs = new System.Windows.Forms.Button();
             this.txtSubscriptions = new System.Windows.Forms.TextBox();
             this.label5 = new System.Windows.Forms.Label();
-            this.lblData = new System.Windows.Forms.ListBox();
-            this.label8 = new System.Windows.Forms.Label();
+            this.groupBox4 = new System.Windows.Forms.GroupBox();
+            this.comboBox1 = new System.Windows.Forms.ComboBox();
+            this.label6 = new System.Windows.Forms.Label();
+            this.lblDataData = new System.Windows.Forms.ListBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
+            this.groupBox4.SuspendLayout();
             this.SuspendLayout();
             // 
             // btnApplicationName
@@ -122,6 +123,7 @@
             this.cbApp.Name = "cbApp";
             this.cbApp.Size = new System.Drawing.Size(207, 21);
             this.cbApp.TabIndex = 5;
+            this.cbApp.SelectedIndexChanged += new System.EventHandler(this.cbApp_SelectedIndexChanged);
             // 
             // label3
             // 
@@ -150,6 +152,7 @@
             this.btnAddModule.TabIndex = 0;
             this.btnAddModule.Text = "Add";
             this.btnAddModule.UseVisualStyleBackColor = true;
+            this.btnAddModule.Click += new System.EventHandler(this.btnAddModule_Click);
             // 
             // label2
             // 
@@ -165,8 +168,6 @@
             // 
             this.groupBox3.Controls.Add(this.txtEndpoint);
             this.groupBox3.Controls.Add(this.label7);
-            this.groupBox3.Controls.Add(this.txtEvent);
-            this.groupBox3.Controls.Add(this.label6);
             this.groupBox3.Controls.Add(this.cbModules);
             this.groupBox3.Controls.Add(this.label4);
             this.groupBox3.Controls.Add(this.btnAddSubs);
@@ -183,44 +184,27 @@
             // 
             // txtEndpoint
             // 
-            this.txtEndpoint.Location = new System.Drawing.Point(76, 123);
+            this.txtEndpoint.Location = new System.Drawing.Point(76, 75);
             this.txtEndpoint.Margin = new System.Windows.Forms.Padding(2);
             this.txtEndpoint.Name = "txtEndpoint";
             this.txtEndpoint.Size = new System.Drawing.Size(207, 20);
             this.txtEndpoint.TabIndex = 9;
+            this.txtEndpoint.Text = "mqtt://127.0.0.1";
             // 
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(17, 127);
+            this.label7.Location = new System.Drawing.Point(15, 84);
             this.label7.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(49, 13);
             this.label7.TabIndex = 8;
             this.label7.Text = "Endpoint";
             // 
-            // txtEvent
-            // 
-            this.txtEvent.Location = new System.Drawing.Point(76, 82);
-            this.txtEvent.Margin = new System.Windows.Forms.Padding(2);
-            this.txtEvent.Name = "txtEvent";
-            this.txtEvent.Size = new System.Drawing.Size(207, 20);
-            this.txtEvent.TabIndex = 7;
-            // 
-            // label6
-            // 
-            this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(17, 84);
-            this.label6.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(35, 13);
-            this.label6.TabIndex = 6;
-            this.label6.Text = "Event";
-            // 
             // cbModules
             // 
             this.cbModules.FormattingEnabled = true;
-            this.cbModules.Location = new System.Drawing.Point(76, 164);
+            this.cbModules.Location = new System.Drawing.Point(76, 118);
             this.cbModules.Margin = new System.Windows.Forms.Padding(2);
             this.cbModules.Name = "cbModules";
             this.cbModules.Size = new System.Drawing.Size(207, 21);
@@ -229,7 +213,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(17, 169);
+            this.label4.Location = new System.Drawing.Point(17, 126);
             this.label4.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(47, 13);
@@ -245,10 +229,11 @@
             this.btnAddSubs.TabIndex = 0;
             this.btnAddSubs.Text = "Add";
             this.btnAddSubs.UseVisualStyleBackColor = true;
+            this.btnAddSubs.Click += new System.EventHandler(this.btnAddSubs_Click);
             // 
             // txtSubscriptions
             // 
-            this.txtSubscriptions.Location = new System.Drawing.Point(76, 40);
+            this.txtSubscriptions.Location = new System.Drawing.Point(76, 37);
             this.txtSubscriptions.Margin = new System.Windows.Forms.Padding(2);
             this.txtSubscriptions.Name = "txtSubscriptions";
             this.txtSubscriptions.Size = new System.Drawing.Size(207, 20);
@@ -264,46 +249,68 @@
             this.label5.TabIndex = 1;
             this.label5.Text = "Name";
             // 
-            // lblData
+            // groupBox4
             // 
-            this.lblData.FormattingEnabled = true;
-            this.lblData.Location = new System.Drawing.Point(28, 396);
-            this.lblData.Margin = new System.Windows.Forms.Padding(2);
-            this.lblData.Name = "lblData";
-            this.lblData.Size = new System.Drawing.Size(281, 121);
-            this.lblData.TabIndex = 6;
+            this.groupBox4.Controls.Add(this.comboBox1);
+            this.groupBox4.Controls.Add(this.label6);
+            this.groupBox4.Controls.Add(this.lblDataData);
+            this.groupBox4.Location = new System.Drawing.Point(12, 372);
+            this.groupBox4.Name = "groupBox4";
+            this.groupBox4.Size = new System.Drawing.Size(406, 334);
+            this.groupBox4.TabIndex = 10;
+            this.groupBox4.TabStop = false;
+            this.groupBox4.Text = "Data";
             // 
-            // label8
+            // comboBox1
             // 
-            this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(25, 370);
-            this.label8.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(30, 13);
-            this.label8.TabIndex = 7;
-            this.label8.Text = "Data";
+            this.comboBox1.FormattingEnabled = true;
+            this.comboBox1.Location = new System.Drawing.Point(26, -23);
+            this.comboBox1.Margin = new System.Windows.Forms.Padding(2);
+            this.comboBox1.Name = "comboBox1";
+            this.comboBox1.Size = new System.Drawing.Size(207, 21);
+            this.comboBox1.TabIndex = 12;
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(-33, -20);
+            this.label6.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(47, 13);
+            this.label6.TabIndex = 11;
+            this.label6.Text = "Modules";
+            // 
+            // lblDataData
+            // 
+            this.lblDataData.FormattingEnabled = true;
+            this.lblDataData.Location = new System.Drawing.Point(17, 26);
+            this.lblDataData.Margin = new System.Windows.Forms.Padding(2);
+            this.lblDataData.Name = "lblDataData";
+            this.lblDataData.Size = new System.Drawing.Size(375, 277);
+            this.lblDataData.TabIndex = 10;
             // 
             // AppA
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1057, 539);
-            this.Controls.Add(this.label8);
-            this.Controls.Add(this.lblData);
+            this.ClientSize = new System.Drawing.Size(1057, 749);
+            this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
             this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "AppA";
             this.Text = "AppA";
+            this.Load += new System.EventHandler(this.AppA_Load);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);
             this.groupBox2.PerformLayout();
             this.groupBox3.ResumeLayout(false);
             this.groupBox3.PerformLayout();
+            this.groupBox4.ResumeLayout(false);
+            this.groupBox4.PerformLayout();
             this.ResumeLayout(false);
-            this.PerformLayout();
 
         }
 
@@ -322,15 +329,15 @@
         private System.Windows.Forms.GroupBox groupBox3;
         private System.Windows.Forms.TextBox txtEndpoint;
         private System.Windows.Forms.Label label7;
-        private System.Windows.Forms.TextBox txtEvent;
-        private System.Windows.Forms.Label label6;
         private System.Windows.Forms.ComboBox cbModules;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Button btnAddSubs;
         private System.Windows.Forms.TextBox txtSubscriptions;
         private System.Windows.Forms.Label label5;
-        private System.Windows.Forms.ListBox lblData;
-        private System.Windows.Forms.Label label8;
+        private System.Windows.Forms.GroupBox groupBox4;
+        private System.Windows.Forms.ComboBox comboBox1;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.ListBox lblDataData;
     }
 }
 

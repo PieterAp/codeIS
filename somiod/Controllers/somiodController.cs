@@ -31,9 +31,9 @@ namespace somiodApp.Controllers
             }
 
             String type = xmlFromBody.Name.LocalName;
-            if (type == "Data")
+            if (type == "data")
                 return PostData(applicationName, moduleName, xmlFromBody);
-            else if (type == "Subscription")
+            else if (type == "subscription")
                 return PostSubscription(applicationName, moduleName, xmlFromBody);
 
             return InternalServerError();
@@ -528,7 +528,7 @@ namespace somiodApp.Controllers
 
             String name = xmlFromBody.XPathSelectElement("/name").Value;
             String eventType = xmlFromBody.XPathSelectElement("/eventType").Value;
-            String endPoint = xmlFromBody.XPathSelectElement("/endPoint").Value;
+            String endPoint = xmlFromBody.XPathSelectElement("/endpoint").Value;
 
             string toBeSearched = "://";
             int ix = endPoint.IndexOf(toBeSearched);
