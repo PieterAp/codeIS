@@ -1,9 +1,9 @@
-﻿using somiod.Models;
+﻿using somiodApp.Models;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 
-namespace somiod.Utils
+namespace somiodApp.Utils
 {
     public class DB_utils
     {

@@ -2,7 +2,7 @@
 using System.Text;
 using uPLibrary.Networking.M2Mqtt;
 
-namespace somiod.Utils
+namespace somiodApp.Utils
 {
     public class MessageBroker_utils
     {

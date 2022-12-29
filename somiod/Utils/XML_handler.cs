@@ -2,7 +2,7 @@
 using System.Xml.Linq;
 using System.Xml.Schema;
 
-namespace somiod.Utils
+namespace somiodApp.Utils
 {
     public class XML_handler
     {

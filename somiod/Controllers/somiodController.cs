@@ -1,4 +1,4 @@
-﻿using somiod.Models;
+﻿using somiodApp.Models;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
@@ -6,9 +6,9 @@ using System.Net;
 using System.Web.Http;
 using System.Xml.Linq;
 using System.Xml.XPath;
-using somiod.Utils;
+using somiodApp.Utils;
 
-namespace somiod.Controllers
+namespace somiodApp.Controllers
 {
     [RoutePrefix("api/somiod")]
     public class somiodController : ApiController

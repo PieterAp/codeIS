@@ -7,7 +7,7 @@ using System.Web;
 using System.Xml.Serialization;
 
 
-namespace somiod.Models
+namespace somiodApp.Models
 {
     [XmlRoot("Applications")]
     public class Applications : List<Application> { }

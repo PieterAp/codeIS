@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
-namespace somiod.Models
+namespace somiodApp.Models
 {
     public class error
     {
