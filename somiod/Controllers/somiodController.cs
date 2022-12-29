@@ -7,6 +7,10 @@ using System.Web.Http;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using somiod.Utils;
+using System.Xml.Serialization;
+using Newtonsoft.Json.Linq;
+using System.IO;
+using System.Xml;
 
 namespace somiod.Controllers
 {
@@ -14,7 +18,7 @@ namespace somiod.Controllers
     public class somiodController : ApiController
     {
         string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["somiod.Properties.Settings.ConnStr"].ConnectionString;
-        error errorMessage;
+        Error errorMessage;
         string applicationXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Application\\application.xsd";       
         string moduleXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Module\\module.xsd";
 
@@ -69,13 +73,13 @@ namespace somiod.Controllers
         }
 
         //POST api/somiod/
-        //Body(xml): application
+        //Body(xml): application(required: name)
         [Route("")]
         public IHttpActionResult PostApplication([FromBody] XElement xmlFromBody)
         {
             if (xmlFromBody == null)
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "Body content is not well formated";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -84,7 +88,7 @@ namespace somiod.Controllers
             XML_handler handler = new XML_handler(xmlFromBody, applicationXSDPath);
             if (!handler.ValidateXML())
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = handler.ValidationMessage;
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -111,8 +115,9 @@ namespace somiod.Controllers
 
             if (DB_utils.existsApplication(xmlFromBody.XPathSelectElement("/name").Value))
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "An application with such name already exists!";
+
                 return Content(HttpStatusCode.Conflict, errorMessage, Configuration.Formatters.XmlFormatter);
             }
 
@@ -156,7 +161,7 @@ namespace somiod.Controllers
 
             if (xmlFromBody == null)
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "Body content is not well formated";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -165,7 +170,7 @@ namespace somiod.Controllers
             XML_handler handler = new XML_handler(xmlFromBody, applicationXSDPath);
             if (!handler.ValidateXML())
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = handler.ValidationMessage;
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -340,7 +345,7 @@ namespace somiod.Controllers
 
             if (xmlFromBody == null)
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "Body content is not well formated";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -349,7 +354,7 @@ namespace somiod.Controllers
             XML_handler handler = new XML_handler(xmlFromBody, moduleXSDPath);
             if (!handler.ValidateXML())
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = handler.ValidationMessage;
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -398,7 +403,7 @@ namespace somiod.Controllers
 
             if (xmlFromBody == null)
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "Body content is not well formated";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -407,7 +412,7 @@ namespace somiod.Controllers
             XML_handler handler = new XML_handler(xmlFromBody, moduleXSDPath);
             if (!handler.ValidateXML())
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = handler.ValidationMessage;
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -562,7 +567,7 @@ namespace somiod.Controllers
 
             if (xmlFromBody == null)
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "Body content is not well formated";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -613,7 +618,7 @@ namespace somiod.Controllers
         {
             if (xmlFromBody == null)
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "Body content is not well formated";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }

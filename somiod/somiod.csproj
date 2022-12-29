@@ -98,6 +98,7 @@
     <Content Include="Utils\XMLandXSD\Application\application.xml" />
     <Content Include="Utils\XMLandXSD\Data\data.xml" />
     <Content Include="Utils\XMLandXSD\Module\module.xml" />
+    <Content Include="Utils\XMLandXSD\Subscription\subscription.xml" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
@@ -108,7 +109,7 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Models\Application.cs" />
-    <Compile Include="Models\error.cs" />
+    <Compile Include="Models\Error.cs" />
     <Compile Include="Models\Module.cs" />
     <Compile Include="Models\Resource.cs" />
     <Compile Include="Models\Subscription.cs" />
@@ -118,6 +119,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
+    <Compile Include="Utils\CustomNamespaceXmlFormatter .cs" />
     <Compile Include="Utils\DB_utils.cs" />
     <Compile Include="Utils\XML_handler.cs" />
   </ItemGroup>
@@ -134,6 +136,9 @@
       <SubType>Designer</SubType>
     </None>
     <None Include="Utils\XMLandXSD\Module\module.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Utils\XMLandXSD\Subscription\subscription.xsd">
       <SubType>Designer</SubType>
     </None>
     <None Include="Web.Debug.config">

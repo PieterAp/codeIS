@@ -1,7 +1,9 @@
-﻿using System;
+﻿using somiod.Utils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Http;
+using System.Web.Services.Description;
 
 namespace somiod
 {
@@ -11,6 +13,10 @@ namespace somiod
         {
             // Web API configuration and services
             config.Formatters.XmlFormatter.UseXmlSerializer = true;
+
+            //config.Formatters.Clear();
+            //config.Formatters.Add(new CustomNamespaceXmlFormatter { UseXmlSerializer = true });
+
 
             // Web API routes
             config.MapHttpAttributeRoutes();

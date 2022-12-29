@@ -9,13 +9,14 @@ using System.Xml.Serialization;
 
 namespace somiod.Models
 {
-    [XmlRoot("Applications")]
+    [XmlRoot("applications")]
     public class Applications : List<Application> { }
 
-    [DataContract(Namespace = "")]
+    [XmlType("application")]
     public class Application
     {
         [DataMember]
+        [XmlElement("id")]
         public int Id { get; set; }
 
         [DataMember]
