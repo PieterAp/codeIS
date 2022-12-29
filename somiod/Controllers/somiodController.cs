@@ -29,7 +29,7 @@ namespace somiod.Controllers
         {
             if (xmlFromBody == null)
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "Body content is not well formated";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
@@ -596,15 +596,13 @@ namespace somiod.Controllers
         {
             if (xmlFromBody == null)
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "Body content is not well formated";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
 
             String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
             String name = xmlFromBody.XPathSelectElement("/name").Value;
-
-            SqlConnection conn = null;
 
             if (DB_utils.existsSubscriptionInModule(moduleName, name))
                 return Content(HttpStatusCode.Conflict, "An subscription with such name already exists for this module!", Configuration.Formatters.XmlFormatter);
@@ -654,7 +652,7 @@ namespace somiod.Controllers
         {
             if (xmlFromBody == null)
             {
-                errorMessage = new error();
+                errorMessage = new Error();
                 errorMessage.message = "Body content is not well formated";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
