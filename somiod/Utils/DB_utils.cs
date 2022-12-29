@@ -2,9 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
-using System.Net;
-using System.Xml.Linq;
-using System.Xml.XPath;
 
 namespace somiod.Utils
 {
@@ -97,7 +94,7 @@ namespace somiod.Utils
             }
 
         }
-
+        
         public static Application findApplication(string applicationName)
         {
             Application application = new Application();
@@ -187,7 +184,7 @@ namespace somiod.Utils
             }
         }
 
-        public static Subscription findSubscription(string applicationName, string moduleName,string subscriptionName)
+        public static Subscription findSubscription(string applicationName, string moduleName, string subscriptionName)
         {
             Subscription subscription = new Subscription();
             SqlConnection conn = null;
@@ -200,7 +197,7 @@ namespace somiod.Utils
                 SqlCommand command = new SqlCommand();
                 command.CommandText = "SELECT * FROM Subscriptions S " +
                     "LEFT JOIN MODULES M ON M.ID = S.moduleID " +
-                    "LEFTJOIN APLICATIONS A ON A.ID = M.applicationID " +
+                    "LEFT JOIN APPLICATIONS A ON A.ID = M.applicationID " +
                     "WHERE S.name like @subscriptionName AND M.ID = @moduleID AND A.ID = @applicationID";
 
                 command.Parameters.AddWithValue("@subscriptionName", subscriptionName);
@@ -221,6 +218,7 @@ namespace somiod.Utils
                     subscription.name = (string)reader["name"];
                     subscription.creation_dt = (DateTime)reader["creation_dt"];
                     subscription.endpoint = (string)reader["endpoint"];
+                    subscription.endpointType = (string)reader["endpointType"];
                     subscription.eventType = (string)reader["eventType"];
                     subscription.moduleID = (int)reader["moduleID"];
                 }
@@ -239,7 +237,7 @@ namespace somiod.Utils
                 conn.Close();
             }
         }
-
+       
         public static Boolean existsSubscriptionInModule(string moduleName, string name)
         {
             int moduleID = 0;
@@ -425,5 +423,58 @@ namespace somiod.Utils
                 conn.Close();
             }
         }
+
+        public static List<Subscription> getSubscriptionsByModule(string moduleName)
+        {
+            List<Subscription> subscriptions = new List<Subscription>();
+            Subscription subscription = new Subscription();
+            SqlConnection conn = null;
+
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+                command.CommandText = "SELECT * FROM (SELECT  *, ROW_NUMBER() OVER(PARTITION BY endpoint ORDER BY ID DESC) rn FROM Subscriptions) a WHERE rn = 1 AND a.moduleID = @moduleId";
+                command.Parameters.AddWithValue("@moduleID", getModuleId(moduleName));       
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+
+                SqlDataReader reader = command.ExecuteReader();
+
+                if (!reader.HasRows)
+                {
+                    return null;
+                }
+                while (reader.Read())
+                {
+                    subscription.Id = (int)reader["Id"];
+                    subscription.name = (string)reader["name"];
+                    subscription.creation_dt = (DateTime)reader["creation_dt"];
+                    subscription.endpoint = (string)reader["endpoint"];
+                    subscription.endpointType = (string)reader["endpointType"];
+                    subscription.eventType = (string)reader["eventType"];
+                    subscription.moduleID = (int)reader["moduleID"];
+
+                    subscriptions.Add(subscription);
+                }
+
+                reader.Close();
+                conn.Close();
+
+                return subscriptions;
+            }
+            catch (Exception e)
+            {
+                e.ToString();
+                return new List<Subscription>();
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
+        
     }
 }

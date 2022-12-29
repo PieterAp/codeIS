@@ -13,5 +13,6 @@ namespace somiod.Models
         public int moduleID { get; set; }
         public string eventType { get; set; }
         public string endpoint { get; set; }
+        public string endpointType { get; set; }
     }
 }

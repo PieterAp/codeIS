@@ -3,10 +3,10 @@
   <xs:element name="data">
     <xs:complexType>
       <xs:sequence>
-        <xs:element name="id" type="xs:unsignedByte" />
+        <xs:element name="id" type="xs:unsignedByte" minOccurs="0"/>
         <xs:element name="content" type="xs:string" />
-        <xs:element name="creation_dt" type="xs:string" />
-        <xs:element name="moduleID" type="xs:unsignedByte" />
+        <xs:element name="creation_dt" type="xs:string" minOccurs="0"/>
+        <xs:element name="moduleID" type="xs:unsignedByte" minOccurs="0"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
