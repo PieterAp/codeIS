@@ -32,13 +32,13 @@
             this.label1 = new System.Windows.Forms.Label();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.txtNameApp = new System.Windows.Forms.TextBox();
-            this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.gbModules = new System.Windows.Forms.GroupBox();
             this.cbApp = new System.Windows.Forms.ComboBox();
             this.label3 = new System.Windows.Forms.Label();
             this.txtNameModule = new System.Windows.Forms.TextBox();
             this.btnAddModule = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
-            this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.gbSubscriptions = new System.Windows.Forms.GroupBox();
             this.txtEndpoint = new System.Windows.Forms.TextBox();
             this.label7 = new System.Windows.Forms.Label();
             this.cbModules = new System.Windows.Forms.ComboBox();
@@ -50,10 +50,14 @@
             this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.label6 = new System.Windows.Forms.Label();
             this.lblDataData = new System.Windows.Forms.ListBox();
+            this.pbon = new System.Windows.Forms.PictureBox();
+            this.pboff = new System.Windows.Forms.PictureBox();
             this.groupBox1.SuspendLayout();
-            this.groupBox2.SuspendLayout();
-            this.groupBox3.SuspendLayout();
+            this.gbModules.SuspendLayout();
+            this.gbSubscriptions.SuspendLayout();
             this.groupBox4.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pbon)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pboff)).BeginInit();
             this.SuspendLayout();
             // 
             // btnApplicationName
@@ -99,21 +103,22 @@
             this.txtNameApp.Size = new System.Drawing.Size(177, 20);
             this.txtNameApp.TabIndex = 3;
             // 
-            // groupBox2
+            // gbModules
             // 
-            this.groupBox2.Controls.Add(this.cbApp);
-            this.groupBox2.Controls.Add(this.label3);
-            this.groupBox2.Controls.Add(this.txtNameModule);
-            this.groupBox2.Controls.Add(this.btnAddModule);
-            this.groupBox2.Controls.Add(this.label2);
-            this.groupBox2.Location = new System.Drawing.Point(352, 42);
-            this.groupBox2.Margin = new System.Windows.Forms.Padding(2);
-            this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Padding = new System.Windows.Forms.Padding(2);
-            this.groupBox2.Size = new System.Drawing.Size(327, 310);
-            this.groupBox2.TabIndex = 4;
-            this.groupBox2.TabStop = false;
-            this.groupBox2.Text = "Modules";
+            this.gbModules.Controls.Add(this.cbApp);
+            this.gbModules.Controls.Add(this.label3);
+            this.gbModules.Controls.Add(this.txtNameModule);
+            this.gbModules.Controls.Add(this.btnAddModule);
+            this.gbModules.Controls.Add(this.label2);
+            this.gbModules.Enabled = false;
+            this.gbModules.Location = new System.Drawing.Point(352, 42);
+            this.gbModules.Margin = new System.Windows.Forms.Padding(2);
+            this.gbModules.Name = "gbModules";
+            this.gbModules.Padding = new System.Windows.Forms.Padding(2);
+            this.gbModules.Size = new System.Drawing.Size(327, 310);
+            this.gbModules.TabIndex = 4;
+            this.gbModules.TabStop = false;
+            this.gbModules.Text = "Modules";
             // 
             // cbApp
             // 
@@ -164,23 +169,24 @@
             this.label2.TabIndex = 1;
             this.label2.Text = "Name";
             // 
-            // groupBox3
+            // gbSubscriptions
             // 
-            this.groupBox3.Controls.Add(this.txtEndpoint);
-            this.groupBox3.Controls.Add(this.label7);
-            this.groupBox3.Controls.Add(this.cbModules);
-            this.groupBox3.Controls.Add(this.label4);
-            this.groupBox3.Controls.Add(this.btnAddSubs);
-            this.groupBox3.Controls.Add(this.txtSubscriptions);
-            this.groupBox3.Controls.Add(this.label5);
-            this.groupBox3.Location = new System.Drawing.Point(695, 42);
-            this.groupBox3.Margin = new System.Windows.Forms.Padding(2);
-            this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Padding = new System.Windows.Forms.Padding(2);
-            this.groupBox3.Size = new System.Drawing.Size(327, 310);
-            this.groupBox3.TabIndex = 5;
-            this.groupBox3.TabStop = false;
-            this.groupBox3.Text = "Subscriptions";
+            this.gbSubscriptions.Controls.Add(this.txtEndpoint);
+            this.gbSubscriptions.Controls.Add(this.label7);
+            this.gbSubscriptions.Controls.Add(this.cbModules);
+            this.gbSubscriptions.Controls.Add(this.label4);
+            this.gbSubscriptions.Controls.Add(this.btnAddSubs);
+            this.gbSubscriptions.Controls.Add(this.txtSubscriptions);
+            this.gbSubscriptions.Controls.Add(this.label5);
+            this.gbSubscriptions.Enabled = false;
+            this.gbSubscriptions.Location = new System.Drawing.Point(695, 42);
+            this.gbSubscriptions.Margin = new System.Windows.Forms.Padding(2);
+            this.gbSubscriptions.Name = "gbSubscriptions";
+            this.gbSubscriptions.Padding = new System.Windows.Forms.Padding(2);
+            this.gbSubscriptions.Size = new System.Drawing.Size(327, 310);
+            this.gbSubscriptions.TabIndex = 5;
+            this.gbSubscriptions.TabStop = false;
+            this.gbSubscriptions.Text = "Subscriptions";
             // 
             // txtEndpoint
             // 
@@ -289,14 +295,36 @@
             this.lblDataData.Size = new System.Drawing.Size(375, 277);
             this.lblDataData.TabIndex = 10;
             // 
+            // pbon
+            // 
+            this.pbon.Image = global::somiodApp.Properties.Resources.bulbon2;
+            this.pbon.Location = new System.Drawing.Point(583, 452);
+            this.pbon.Name = "pbon";
+            this.pbon.Size = new System.Drawing.Size(122, 148);
+            this.pbon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.pbon.TabIndex = 12;
+            this.pbon.TabStop = false;
+            // 
+            // pboff
+            // 
+            this.pboff.Image = global::somiodApp.Properties.Resources.bulbon;
+            this.pboff.Location = new System.Drawing.Point(583, 452);
+            this.pboff.Name = "pboff";
+            this.pboff.Size = new System.Drawing.Size(122, 148);
+            this.pboff.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.pboff.TabIndex = 13;
+            this.pboff.TabStop = false;
+            // 
             // AppA
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1057, 749);
+            this.Controls.Add(this.pboff);
+            this.Controls.Add(this.pbon);
             this.Controls.Add(this.groupBox4);
-            this.Controls.Add(this.groupBox3);
-            this.Controls.Add(this.groupBox2);
+            this.Controls.Add(this.gbSubscriptions);
+            this.Controls.Add(this.gbModules);
             this.Controls.Add(this.groupBox1);
             this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "AppA";
@@ -304,12 +332,14 @@
             this.Load += new System.EventHandler(this.AppA_Load);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
-            this.groupBox2.ResumeLayout(false);
-            this.groupBox2.PerformLayout();
-            this.groupBox3.ResumeLayout(false);
-            this.groupBox3.PerformLayout();
+            this.gbModules.ResumeLayout(false);
+            this.gbModules.PerformLayout();
+            this.gbSubscriptions.ResumeLayout(false);
+            this.gbSubscriptions.PerformLayout();
             this.groupBox4.ResumeLayout(false);
             this.groupBox4.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pbon)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pboff)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -320,13 +350,13 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.TextBox txtNameApp;
-        private System.Windows.Forms.GroupBox groupBox2;
+        private System.Windows.Forms.GroupBox gbModules;
         private System.Windows.Forms.TextBox txtNameModule;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Button btnAddModule;
         private System.Windows.Forms.ComboBox cbApp;
         private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.GroupBox groupBox3;
+        private System.Windows.Forms.GroupBox gbSubscriptions;
         private System.Windows.Forms.TextBox txtEndpoint;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.ComboBox cbModules;
@@ -338,6 +368,8 @@
         private System.Windows.Forms.ComboBox comboBox1;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.ListBox lblDataData;
+        private System.Windows.Forms.PictureBox pbon;
+        private System.Windows.Forms.PictureBox pboff;
     }
 }
 

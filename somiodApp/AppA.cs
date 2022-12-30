@@ -19,9 +19,8 @@ namespace somiodApp
         public AppA()
         {
             InitializeComponent();
-            getAllApplications();
+            getAllApplications();              
         }
-
         private void btnApplicationName_Click(object sender, EventArgs e)
         {
             string url = "https://localhost:44340/api/somiod";
@@ -33,6 +32,9 @@ namespace somiodApp
                 {
                     MessageBox.Show("Application " + txtNameApp.Text + " was created sucessfully");
                     getAllApplications();
+                    cbApp.SelectedIndex = cbApp.FindStringExact(txtNameApp.Text);
+                    txtNameApp.Text = "";
+                    txtNameModule.Text = "";
                 }
 
                 if (response.StatusCode == HttpStatusCode.Conflict)
@@ -55,22 +57,10 @@ namespace somiodApp
                 if (response.StatusCode == HttpStatusCode.OK)
                 {
                     MessageBox.Show("Module " + txtNameModule.Text + " was created sucessfully");
-                    int selected = cbApp.SelectedIndex;
-                    if (selected==cbApp.Items.Count && cbApp.Items.Count!=1)
-                    {
-                        cbApp.SelectedIndex = selected - 1;
-                        cbApp.SelectedIndex = selected;
-                    }
-                    else if (selected != cbApp.Items.Count && cbApp.Items.Count != 1)
-                    {
-                        cbApp.SelectedIndex = selected + 1;
-                        cbApp.SelectedIndex = selected;
-                    }
-                    else
-                    {
-                        getAllApplications();
-                    }
-                    
+                    getModules(cbApp.Text);
+                    cbModules.SelectedIndex = cbModules.FindStringExact(txtNameModule.Text);
+                    txtNameModule.Text = "";
+
                 }
                 if (response.StatusCode == HttpStatusCode.Conflict)
                 {
@@ -98,7 +88,8 @@ namespace somiodApp
                 if (response.StatusCode == HttpStatusCode.OK)
                 {
                     MessageBox.Show("Subscription " + txtSubscriptions.Text + " was created sucessfully");
-                    connectSubscribe(txtEndpoint.Text,cbModules.Text);
+                    connectSubscribe(txtEndpoint.Text, cbModules.Text);
+                    txtSubscriptions.Text = "";
                 }
                 if (response.StatusCode == HttpStatusCode.Conflict)
                 {
@@ -113,14 +104,37 @@ namespace somiodApp
         public void getAllApplications()
         {
             string url = "https://localhost:44340/api/somiod";
+            List<Application> applications = xmlApplicationStringToList(getXMLData(url));
             cbApp.SelectedIndexChanged -= new EventHandler(cbApp_SelectedIndexChanged);
-            cbApp.DataSource = xmlApplicationStringToList(getXMLData(url));
+            cbApp.DataSource = applications;
             cbApp.DisplayMember = "name";
             cbApp.ValueMember = "id";
             cbApp.SelectedIndexChanged += new EventHandler(cbApp_SelectedIndexChanged);
-            cbApp.SelectedIndex = 1;
-            cbApp.SelectedIndex = 0;
+
+            if (applications.Count != 0)
+            {
+                gbModules.Enabled = true;
+                getModules(applications[0].name);
+            }
         }
+
+        public void getModules(string appName)
+        {
+            cbModules.DataSource = null;
+            cbModules.Items.Clear();
+            string url = "https://localhost:44340/api/somiod/" + appName;
+            List<Module> modules = xmlModuleStringToList(getXMLData(url));
+            cbModules.DataSource = modules;
+            cbModules.DisplayMember = "name";
+            cbModules.ValueMember = "id";
+
+            if (modules.Count == 0)
+                gbSubscriptions.Enabled = false;
+            else
+                gbSubscriptions.Enabled = true;
+
+        }
+
         public HttpWebResponse postXMLData(string destinationUrl, string requestXml)
         {
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(destinationUrl);
@@ -150,7 +164,7 @@ namespace somiodApp
             }
 
             return null;
-        }       
+        }
         public List<Application> xmlApplicationStringToList(string xmlString)
         {
             XDocument doc = new XDocument();
@@ -241,18 +255,11 @@ namespace somiodApp
         }
         private void cbApp_SelectedIndexChanged(object sender, EventArgs e)
         {
-            #region get all modules
-            string url = "https://localhost:44340/api/somiod/" + cbApp.Text;
-            List<Module> modules = xmlModuleStringToList(getXMLData(url));
-            cbModules.DataSource = modules;
-            cbModules.DisplayMember = "name";
-            cbModules.ValueMember = "id";          
-            #endregion
-
+            getModules(cbApp.Text);
         }
-        private void connectSubscribe(string endpoint,string channel)
-        {           
-           string ip = endpoint.Substring(endpoint.IndexOf('/')+2,endpoint.Length-(endpoint.IndexOf('/') + 2));
+        private void connectSubscribe(string endpoint, string channel)
+        {
+            string ip = endpoint.Substring(endpoint.IndexOf('/') + 2, endpoint.Length - (endpoint.IndexOf('/') + 2));
             mClient = new MqttClient(ip);
             mClient.Connect(Guid.NewGuid().ToString());
             if (!mClient.IsConnected)
@@ -264,19 +271,31 @@ namespace somiodApp
             //This client's subscription operation id done
             mClient.MqttMsgSubscribed += client_MqttMsgSubscribed;
             //New Msg Arrived
-            mClient.MqttMsgPublishReceived += client_MqttMsgPublishReceived;         
+            mClient.MqttMsgPublishReceived += client_MqttMsgPublishReceived;
             byte[] qosLevels = { MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE };//QoS            
-            mClient.Subscribe(new string[]{ channel }, qosLevels);
+            mClient.Subscribe(new string[] { channel }, qosLevels);
         }
         void client_MqttMsgSubscribed(object sender, MqttMsgSubscribedEventArgs e)
         {
-            MessageBox.Show("SUBSCRIBED WITH SUCCESS");
+            lblDataData.Items.Add("---SUBSCRIBED WITH SUCCESS---");
+            lblDataData.Items.Add("Now listening in channel " + cbModules.Text);
         }
         void client_MqttMsgPublishReceived(object sender, MqttMsgPublishEventArgs e)
         {
-            lblDataData.Items.Add(Encoding.UTF8.GetString(e.Message));
-        }
+            string message = Encoding.UTF8.GetString(e.Message);
+            lblDataData.Items.Add("Received msg: " + message);
 
+            if (message == "on")
+            {
+                pboff.Visible = false;
+                pbon.Visible = true;
+            }
+            else if (message == "off")
+            {
+                pbon.Visible = false;
+                pboff.Visible = true;
+            }
+        }
         private void AppA_Load(object sender, EventArgs e)
         {
             CheckForIllegalCrossThreadCalls = false;
