@@ -18,6 +18,9 @@ namespace somiodApp
         MqttClient mClient;
         public AppA()
         {
+            AppB appB = new AppB();
+            appB.Show();
+
             InitializeComponent();
             getAllApplications();              
         }
@@ -60,7 +63,6 @@ namespace somiodApp
                     getModules(cbApp.Text);
                     cbModules.SelectedIndex = cbModules.FindStringExact(txtNameModule.Text);
                     txtNameModule.Text = "";
-
                 }
                 if (response.StatusCode == HttpStatusCode.Conflict)
                 {
@@ -117,7 +119,6 @@ namespace somiodApp
                 getModules(applications[0].name);
             }
         }
-
         public void getModules(string appName)
         {
             cbModules.DataSource = null;
@@ -134,7 +135,6 @@ namespace somiodApp
                 gbSubscriptions.Enabled = true;
 
         }
-
         public HttpWebResponse postXMLData(string destinationUrl, string requestXml)
         {
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(destinationUrl);

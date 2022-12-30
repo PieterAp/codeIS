@@ -122,6 +122,7 @@
             // 
             // cbApp
             // 
+            this.cbApp.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbApp.FormattingEnabled = true;
             this.cbApp.Location = new System.Drawing.Point(80, 76);
             this.cbApp.Margin = new System.Windows.Forms.Padding(2);
@@ -209,6 +210,7 @@
             // 
             // cbModules
             // 
+            this.cbModules.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbModules.FormattingEnabled = true;
             this.cbModules.Location = new System.Drawing.Point(76, 118);
             this.cbModules.Margin = new System.Windows.Forms.Padding(2);
@@ -260,7 +262,7 @@
             this.groupBox4.Controls.Add(this.comboBox1);
             this.groupBox4.Controls.Add(this.label6);
             this.groupBox4.Controls.Add(this.lblDataData);
-            this.groupBox4.Location = new System.Drawing.Point(12, 372);
+            this.groupBox4.Location = new System.Drawing.Point(170, 374);
             this.groupBox4.Name = "groupBox4";
             this.groupBox4.Size = new System.Drawing.Size(406, 334);
             this.groupBox4.TabIndex = 10;
@@ -298,7 +300,7 @@
             // pbon
             // 
             this.pbon.Image = global::somiodApp.Properties.Resources.bulbon2;
-            this.pbon.Location = new System.Drawing.Point(583, 452);
+            this.pbon.Location = new System.Drawing.Point(761, 452);
             this.pbon.Name = "pbon";
             this.pbon.Size = new System.Drawing.Size(122, 148);
             this.pbon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
@@ -308,7 +310,7 @@
             // pboff
             // 
             this.pboff.Image = global::somiodApp.Properties.Resources.bulbon;
-            this.pboff.Location = new System.Drawing.Point(583, 452);
+            this.pboff.Location = new System.Drawing.Point(761, 452);
             this.pboff.Name = "pboff";
             this.pboff.Size = new System.Drawing.Size(122, 148);
             this.pboff.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
@@ -319,7 +321,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1057, 749);
+            this.ClientSize = new System.Drawing.Size(1057, 730);
             this.Controls.Add(this.pboff);
             this.Controls.Add(this.pbon);
             this.Controls.Add(this.groupBox4);

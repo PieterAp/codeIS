@@ -674,10 +674,14 @@ namespace somiodApp.Controllers
 
                 //Get all endpoints
                 List<Subscription> subscriptions = DB_utils.getSubscriptionsByModule(moduleName);
-                foreach (Subscription subscription in subscriptions)
+                if (subscriptions!=null)
                 {
-                    MessageBroker_utils.connectPublish(subscription.endpointType, subscription.endpoint, moduleName, content);
+                    foreach (Subscription subscription in subscriptions)
+                    {
+                        MessageBroker_utils.connectPublish(subscription.endpointType, subscription.endpoint, moduleName, content);
+                    }
                 }
+               
 
                 return Content(HttpStatusCode.Created, content, Configuration.Formatters.XmlFormatter);
             }
