@@ -19,6 +19,7 @@ namespace somiodApp.Controllers
         string applicationXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Application\\application.xsd";       
         string moduleXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Module\\module.xsd";
         string subscriptionXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Subscription\\subscription.xsd";
+        string dataXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Data\\data.xsd";
 
 
         #region Subscription/Data
@@ -633,11 +634,19 @@ namespace somiodApp.Controllers
             String name = xmlFromBody.XPathSelectElement("/name").Value;
 
             if (DB_utils.existsSubscriptionInModule(moduleName, name))
-                return Content(HttpStatusCode.Conflict, "An subscription with such name already exists for this module!", Configuration.Formatters.XmlFormatter);
+            {
+                errorMessage = new Error();
+                errorMessage.message = "An subscription with such name already exists for this module!";
+                return Content(HttpStatusCode.Conflict, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
 
             Subscription foundSubscription = DB_utils.findSubscription(applicationName, moduleName, subscriptionName);
             if (foundSubscription == null)
-                return Content(HttpStatusCode.NotFound, "Could not find subscription with name " + subscriptionName, Configuration.Formatters.XmlFormatter);
+            {
+                errorMessage = new Error();
+                errorMessage.message = "Could not find subscription with name " + subscriptionName;
+                return Content(HttpStatusCode.NotFound, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
 
             SqlConnection conn = null;
 
@@ -662,11 +671,11 @@ namespace somiodApp.Controllers
 
                 conn.Close();
 
-                return Content(HttpStatusCode.Created, "", Configuration.Formatters.XmlFormatter);
+                return Ok();
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                return InternalServerError(e);
+                return InternalServerError();
             }
             finally
             {
@@ -680,6 +689,15 @@ namespace somiodApp.Controllers
         //Redirect function from parent PostSubscriptionData()
         public IHttpActionResult PostData(string applicationName, string moduleName, [FromBody] XElement xmlFromBody)
         {
+            //validate body contents using XSD
+            XML_handler handler = new XML_handler(xmlFromBody, dataXSDPath);
+            if (!handler.ValidateXML())
+            {
+                errorMessage = new Error();
+                errorMessage.message = handler.ValidationMessage;
+                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
+
             String content = xmlFromBody.XPathSelectElement("/content").Value;
 
             SqlConnection conn = null;
@@ -712,9 +730,9 @@ namespace somiodApp.Controllers
 
                 return Content(HttpStatusCode.Created, content, Configuration.Formatters.XmlFormatter);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                return InternalServerError(e);
+                return InternalServerError();
             }
             finally
             {

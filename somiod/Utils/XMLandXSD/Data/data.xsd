@@ -2,12 +2,18 @@
 <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <xs:element name="data">
     <xs:complexType>
-      <xs:sequence>
+      <xs:all>
         <xs:element name="id" type="xs:unsignedByte" minOccurs="0"/>
-        <xs:element name="content" type="xs:string" />
+		<xs:element name="content" minOccurs="1">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:element>
         <xs:element name="creation_dt" type="xs:string" minOccurs="0"/>
         <xs:element name="moduleID" type="xs:unsignedByte" minOccurs="0"/>
-      </xs:sequence>
+      </xs:all>
     </xs:complexType>
   </xs:element>
 </xs:schema>

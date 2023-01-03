@@ -95,7 +95,7 @@ namespace somiodApp
                 }
                 if (response.StatusCode == HttpStatusCode.Conflict)
                 {
-                    MessageBox.Show("An subscription with such name already exists for this module!");
+                    MessageBox.Show("A subscription with such name already exists for this module!");
                 }
                 if (response.StatusCode == HttpStatusCode.BadRequest)
                 {

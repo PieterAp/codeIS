@@ -97,7 +97,6 @@ namespace somiodApp.Utils
 
         }
         
-        //~soft delete check done~
         public static Application findApplication(string applicationName)
         {
             Application application = new Application();
@@ -142,7 +141,6 @@ namespace somiodApp.Utils
             }
         }
 
-        //~soft delete check done~
         public static Module findModule(string applicationName, string moduleName)
         {
             Module module = new Module();
@@ -188,7 +186,7 @@ namespace somiodApp.Utils
                 conn.Close();
             }
         }
-
+        
         public static Subscription findSubscription(string applicationName, string moduleName, string subscriptionName)
         {
             Subscription subscription = new Subscription();
@@ -203,7 +201,8 @@ namespace somiodApp.Utils
                 command.CommandText = "SELECT * FROM Subscriptions S " +
                     "LEFT JOIN MODULES M ON M.ID = S.moduleID " +
                     "LEFT JOIN APPLICATIONS A ON A.ID = M.applicationID " +
-                    "WHERE S.name like @subscriptionName AND M.ID = @moduleID AND A.ID = @applicationID";
+                    "WHERE S.name like @subscriptionName AND M.ID = @moduleID AND A.ID = @applicationID AND " +
+                    " S.is_deleted = 0 AND A.is_deleted = 0 AND M.is_deleted = 0";
 
                 command.Parameters.AddWithValue("@subscriptionName", subscriptionName);
                 command.Parameters.AddWithValue("@moduleID", getModuleId(moduleName));
@@ -235,7 +234,7 @@ namespace somiodApp.Utils
             }
             catch (Exception)
             {
-                return new Subscription();
+                return null;
             }
             finally
             {
@@ -243,7 +242,6 @@ namespace somiodApp.Utils
             }
         }
 
-        //~soft delete check done~
         public static Boolean existsSubscriptionInModule(string moduleName, string name)
         {
             int moduleID = 0;
@@ -300,7 +298,6 @@ namespace somiodApp.Utils
             }
         }
 
-        //~soft delete check done~
         public static Boolean existsModuleInApplication(string applicationName, string name)
         {
             int applicationID = 0;
@@ -357,7 +354,6 @@ namespace somiodApp.Utils
             }
         }
 
-        //~soft delete check done~
         public static Boolean existsApplication(string applicationName)
         {
             Boolean hasFoundApplication = false;
