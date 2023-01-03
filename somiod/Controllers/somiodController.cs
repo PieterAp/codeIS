@@ -7,6 +7,7 @@ using System.Web.Http;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using somiodApp.Utils;
+using Microsoft.SqlServer.Server;
 
 namespace somiodApp.Controllers
 {
@@ -17,6 +18,8 @@ namespace somiodApp.Controllers
         Error errorMessage;
         string applicationXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Application\\application.xsd";       
         string moduleXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Module\\module.xsd";
+        string subscriptionXSDPath = AppDomain.CurrentDomain.BaseDirectory + "\\Utils\\XMLandXSD\\Subscription\\subscription.xsd";
+
 
         #region Subscription/Data
         //POST api/somiod/<applicationName>/<moduleName>
@@ -26,20 +29,41 @@ namespace somiodApp.Controllers
             if (xmlFromBody == null)
             {
                 errorMessage = new Error();
-                errorMessage.message = "Body content is not well formated";
+                errorMessage.message = "Body content is not according to XML syntax";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
 
-            String type = xmlFromBody.Name.LocalName;
-            if (type == "data")
-                return PostData(applicationName, moduleName, xmlFromBody);
-            else if (type == "subscription")
-                return PostSubscription(applicationName, moduleName, xmlFromBody);
+            if (!DB_utils.existsApplication(applicationName))
+            {
+                errorMessage = new Error();
+                errorMessage.message = "Could not find application with name " + applicationName;
+                return Content(HttpStatusCode.NotFound, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
 
-            return InternalServerError();
+            if (!DB_utils.existsModuleInApplication(applicationName,moduleName))
+            {
+                errorMessage = new Error();
+                errorMessage.message = "Could not find module with name " + moduleName;
+                return Content(HttpStatusCode.NotFound, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
+
+            try
+            {
+                String type = xmlFromBody.Name.LocalName;
+                if (type == "data")
+                    return PostData(applicationName, moduleName, xmlFromBody);
+                else if (type == "subscription")
+                    return PostSubscription(applicationName, moduleName, xmlFromBody);
+
+                return InternalServerError();
+            }
+            catch(Exception)
+            {
+                return InternalServerError();
+            }
         }
-
         #endregion
+
 
         #region Applications
         //GET api/somiod
@@ -56,7 +80,7 @@ namespace somiodApp.Controllers
                 conn.Open();
 
                 SqlCommand command = new SqlCommand();
-                command.CommandText = "SELECT * FROM Applications";
+                command.CommandText = "SELECT * FROM Applications WHERE is_deleted = 0";
                 command.CommandType = System.Data.CommandType.Text;
                 command.Connection = conn;
 
@@ -92,18 +116,19 @@ namespace somiodApp.Controllers
         }
 
         //POST api/somiod/
-        //Body(xml): application(required: name)
+        //Body(xml): application
         [Route("")]
         public IHttpActionResult PostApplication([FromBody] XElement xmlFromBody)
         {
+            //XML syntax check
             if (xmlFromBody == null)
             {
                 errorMessage = new Error();
-                errorMessage.message = "Body content is not well formated";
+                errorMessage.message = "Body content is not according to XML syntax";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
 
-            //Validate body contents using XSD
+            //validate body contents using XSD
             XML_handler handler = new XML_handler(xmlFromBody, applicationXSDPath);
             if (!handler.ValidateXML())
             {
@@ -112,35 +137,15 @@ namespace somiodApp.Controllers
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
 
-
-            //Not sure whether we're going to need these, just gonna keep them for now
-            /*
-            if (xmlFromBody.XPathSelectElement("/res_type") == null)
-                return Content(HttpStatusCode.BadRequest, "Missing required 'res_type' element in body!", Configuration.Formatters.XmlFormatter);
-
-            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
-
-            if (xmlFromBody.XPathSelectElement("/name") == null)
-                return Content(HttpStatusCode.BadRequest, "Missing required 'name' element in body!", Configuration.Formatters.XmlFormatter);
-
             String name = xmlFromBody.XPathSelectElement("/name").Value;
-
-            if (res_type != "application")
-                return Content(HttpStatusCode.BadRequest, "res_type element not valid, can only be 'application' for this route", Configuration.Formatters.XmlFormatter);
-
-            if (String.IsNullOrEmpty(name))
-                return Content(HttpStatusCode.BadRequest, "Missing required 'name' element in body!", Configuration.Formatters.XmlFormatter);
-            */
-
-            if (DB_utils.existsApplication(xmlFromBody.XPathSelectElement("/name").Value))
+            
+            //check whether application in body already exists in db
+            if (DB_utils.existsApplication(name))
             {
                 errorMessage = new Error();
                 errorMessage.message = "An application with such name already exists!";
-
                 return Content(HttpStatusCode.Conflict, errorMessage, Configuration.Formatters.XmlFormatter);
             }
-
-            String name = xmlFromBody.XPathSelectElement("/name").Value;
 
             SqlConnection conn = null;
 
@@ -157,8 +162,7 @@ namespace somiodApp.Controllers
                 command.Connection = conn;
                 command.ExecuteNonQuery();
                 conn.Close();
-
-                return Content(HttpStatusCode.OK, DB_utils.findApplication(name), Configuration.Formatters.XmlFormatter);
+                return Content(HttpStatusCode.Created, DB_utils.findApplication(name), Configuration.Formatters.XmlFormatter);
 
             }
             catch (Exception)
@@ -172,16 +176,20 @@ namespace somiodApp.Controllers
         }
 
         //PUT api/somiod/<applicationName>
-        //Header: applicationName
         //Body(xml): application
         [Route("{applicationName}")]
         public IHttpActionResult PutApplication(string applicationName, [FromBody] XElement xmlFromBody)
         {
+            //check wether application to be updated exists
+            Application foundApplication = DB_utils.findApplication(applicationName);
+            if (foundApplication == null)
+                return NotFound();
 
+            //XML syntax check
             if (xmlFromBody == null)
             {
                 errorMessage = new Error();
-                errorMessage.message = "Body content is not well formated";
+                errorMessage.message = "Body content is not according to XML syntax";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
 
@@ -195,37 +203,17 @@ namespace somiodApp.Controllers
             }
 
             String name = xmlFromBody.XPathSelectElement("/name").Value;
-            /*
-            if (resource.res_type != "application")
-                return BadRequest("Resource type not valid, can only be 'application' for this route");
-            
 
-            if (xmlFromBody.XPathSelectElement("/res_type") == null)
-                return Content(HttpStatusCode.BadRequest, "Missing required 'res_type' element in body!", Configuration.Formatters.XmlFormatter);
+            //check whether new application name already exists
+            if (DB_utils.existsApplication(name))
+            {
+                errorMessage = new Error();
+                errorMessage.message = "An application with such name already exists!";
+                return Content(HttpStatusCode.Conflict, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
 
-            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
-
-            if (res_type != "application")
-                return BadRequest("Resource type not valid, only the 'application' resource type is valid for this route");
-
-            if (xmlFromBody.XPathSelectElement("/name") == null)
-                return Content(HttpStatusCode.BadRequest, "Missing required 'name' element in body!", Configuration.Formatters.XmlFormatter);
-
-            String name = xmlFromBody.XPathSelectElement("/name").Value;
-
-            if (res_type != "application")
-                return Content(HttpStatusCode.BadRequest, "res_type element not valid, can only be 'application' for this route", Configuration.Formatters.XmlFormatter);
-
-            if (String.IsNullOrEmpty(name))
-                return Content(HttpStatusCode.BadRequest, "Missing required 'name' element in body!", Configuration.Formatters.XmlFormatter);
-            */
             SqlConnection conn = null;
-
-            Application foundApplication = DB_utils.findApplication(applicationName);
-            if (foundApplication == null)
-
-                return Content(HttpStatusCode.NotFound, "Could not find application with name " + applicationName, Configuration.Formatters.XmlFormatter);
-
+               
             try
             {
                 conn = new SqlConnection(connectionString);
@@ -254,18 +242,15 @@ namespace somiodApp.Controllers
             }
         }
 
-        //soft delete
         //DELETE api/somiod/<applicationName>
+        //~soft delete~
         [Route("{applicationName}")]
         public IHttpActionResult DeleteApplication(string applicationName)
         {
             DB_utils.findApplication(applicationName);
             Application foundApplication = DB_utils.findApplication(applicationName);
             if (foundApplication == null)
-                return Content(HttpStatusCode.NotFound, "Could not find module with name " + applicationName, Configuration.Formatters.XmlFormatter);
-
-            if (DB_utils.hasModules(applicationName))
-                return Content(HttpStatusCode.Conflict, "Given application has modules related to it!");
+                return NotFound();
 
             SqlConnection conn = null;
 
@@ -275,19 +260,16 @@ namespace somiodApp.Controllers
                 conn.Open();
 
                 SqlCommand command = new SqlCommand();
-
-                command.CommandText = "DELETE FROM Applications WHERE id = @id";
+                command.CommandText = "UPDATE Applications SET is_deleted=1, deletion_dt=@currDate WHERE id = @id";
                 command.Parameters.AddWithValue("@id", foundApplication.Id);
+                command.Parameters.AddWithValue("@currDate", DateTime.Now);
                 command.CommandType = System.Data.CommandType.Text;
                 command.Connection = conn;
                 command.ExecuteNonQuery();
 
-                //TODO: Verificar se o registo foi realmente alterado?
-                //TODO: Cascade delete in case of having associated modules?
-
                 conn.Close();
 
-                return Content(HttpStatusCode.OK, "", Configuration.Formatters.XmlFormatter);
+                return Ok();
             }
             catch (Exception)
             {
@@ -300,6 +282,7 @@ namespace somiodApp.Controllers
         }
         #endregion
 
+
         #region Modules
         //GET api/somiod/<applicationName>
         [Route("{applicationName}")]
@@ -307,9 +290,9 @@ namespace somiodApp.Controllers
         {
             Application foundApplication = DB_utils.findApplication(applicationName);
             if (foundApplication == null)
-                return null;
+                return NotFound();
 
-            List<Module> modules = new List<Module>();
+            Modules modules = new Modules();
             Module module;
             SqlConnection conn = null;
 
@@ -319,7 +302,7 @@ namespace somiodApp.Controllers
                 conn.Open();
 
                 SqlCommand command = new SqlCommand();
-                command.CommandText = "SELECT * FROM Modules WHERE applicationID = @applicationId";
+                command.CommandText = "SELECT * FROM Modules WHERE applicationID = @applicationId AND is_deleted = 0";
                 command.Parameters.AddWithValue("@applicationId", foundApplication.Id);
                 command.CommandType = System.Data.CommandType.Text;
                 command.Connection = conn;
@@ -344,11 +327,10 @@ namespace somiodApp.Controllers
                 conn.Close();
 
                 return Content(HttpStatusCode.OK, modules, Configuration.Formatters.XmlFormatter);
-
             }
             catch (Exception)
             {
-                return null;
+                return InternalServerError();
             }
             finally
             {
@@ -357,15 +339,22 @@ namespace somiodApp.Controllers
         }
 
         //POST api/somiod/<applicationName>
-        //Body : Resource object, fields of interest (res_type, name)
+        //Body(xml): module
         [Route("{applicationName}")]
         public IHttpActionResult PostModule(string applicationName, [FromBody] XElement xmlFromBody)
         {
+            Application foundApplication = DB_utils.findApplication(applicationName);
+            if (foundApplication == null)
+            {
+                errorMessage = new Error();
+                errorMessage.message = "application provided in URL was not found, a module can only be created on top of an existing application";
+                return Content(HttpStatusCode.NotFound, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
 
             if (xmlFromBody == null)
             {
                 errorMessage = new Error();
-                errorMessage.message = "Body content is not well formated";
+                errorMessage.message = "Body content is not according to XML syntax";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
 
@@ -381,7 +370,12 @@ namespace somiodApp.Controllers
             String name = xmlFromBody.XPathSelectElement("/name").Value;
 
             if (DB_utils.existsModuleInApplication(applicationName, name))
-                return Content(HttpStatusCode.Conflict, "An module with such name already exists for this application!", Configuration.Formatters.XmlFormatter);
+            {
+                errorMessage = new Error();
+                errorMessage.message = "A module with such name already exists for this application!";
+                return Content(HttpStatusCode.Conflict, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
+                
 
             SqlConnection conn = null;
 
@@ -394,7 +388,7 @@ namespace somiodApp.Controllers
 
                 command.CommandText = "INSERT INTO modules (Name,applicationID) VALUES (@name,@applicationID)";
                 command.Parameters.AddWithValue("@name", name);
-                command.Parameters.AddWithValue("@applicationID", DB_utils.getApplicationId(applicationName));
+                command.Parameters.AddWithValue("@applicationID", foundApplication.Id);
                 command.CommandType = System.Data.CommandType.Text;
                 command.Connection = conn;
                 command.ExecuteNonQuery();
@@ -418,11 +412,10 @@ namespace somiodApp.Controllers
         [Route("{applicationName}/{moduleName}")]
         public IHttpActionResult PutModule(string applicationName, string moduleName, [FromBody] XElement xmlFromBody)
         {
-
             if (xmlFromBody == null)
             {
                 errorMessage = new Error();
-                errorMessage.message = "Body content is not well formated";
+                errorMessage.message = "Body content is not according to XML syntax";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
 
@@ -437,14 +430,29 @@ namespace somiodApp.Controllers
 
             String name = xmlFromBody.XPathSelectElement("/name").Value;
 
-            SqlConnection conn = null;
+            if (!DB_utils.existsApplication(applicationName))
+            {
+                errorMessage = new Error();
+                errorMessage.message = "Application provided in URL was not found";
+                return Content(HttpStatusCode.NotFound, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
 
             if (DB_utils.existsModuleInApplication(applicationName, name))
-                return Content(HttpStatusCode.Conflict, "An module with such name already exists for this application!", Configuration.Formatters.XmlFormatter);
+            {
+                errorMessage = new Error();
+                errorMessage.message = "An module with such name already exists for this application";
+                return Content(HttpStatusCode.Conflict, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
 
             Module foundModule = DB_utils.findModule(applicationName, moduleName);
             if (foundModule == null)
-                return Content(HttpStatusCode.NotFound, "Could not find module with name " + moduleName, Configuration.Formatters.XmlFormatter);
+            {
+                errorMessage = new Error();
+                errorMessage.message = "Could not find module with name " + moduleName;
+                return Content(HttpStatusCode.NotFound, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
+
+            SqlConnection conn = null;
 
             try
             {
@@ -474,15 +482,24 @@ namespace somiodApp.Controllers
             }
         }
 
-        //soft delete
         //DELETE api/somiod/<applicationName>/<moduleName>
         [Route("{applicationName}/{moduleName}")]
         public IHttpActionResult DeleteModule(string applicationName, string moduleName)
         {
-            DB_utils.findModule(applicationName, moduleName);
+            if (!DB_utils.existsApplication(applicationName))
+            {
+                errorMessage = new Error();
+                errorMessage.message = "Could not find application with name " + applicationName;
+                return Content(HttpStatusCode.NotFound, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
+
             Module foundModule = DB_utils.findModule(applicationName, moduleName);
             if (foundModule == null)
-                return Content(HttpStatusCode.NotFound, "Could not find module with name " + moduleName, Configuration.Formatters.XmlFormatter);
+            {
+                errorMessage = new Error();
+                errorMessage.message = "Could not find module with name " + moduleName;
+                return Content(HttpStatusCode.NotFound, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
 
             SqlConnection conn = null;
 
@@ -492,17 +509,16 @@ namespace somiodApp.Controllers
                 conn.Open();
 
                 SqlCommand command = new SqlCommand();
-
-                command.CommandText = "DELETE M FROM Modules M LEFTJOIN Applications A ON A.id=M.applicationID WHERE id = @id AND A.id = @applicationID";
+                command.CommandText = "UPDATE Modules SET is_deleted=1, deletion_dt=@currDate WHERE id = @id";
                 command.Parameters.AddWithValue("@id", foundModule.Id);
-                command.Parameters.AddWithValue("@applicationID", DB_utils.getApplicationId(applicationName));
+                command.Parameters.AddWithValue("@currDate", DateTime.Now);
                 command.CommandType = System.Data.CommandType.Text;
                 command.Connection = conn;
                 command.ExecuteNonQuery();
 
                 conn.Close();
 
-                return Content(HttpStatusCode.OK, "", Configuration.Formatters.XmlFormatter);
+                return Ok();
             }
             catch (Exception)
             {
@@ -515,18 +531,29 @@ namespace somiodApp.Controllers
         }
         #endregion
 
+
         #region Subscriptions             
+        //Redirect function from parent PostSubscriptionData()
         public IHttpActionResult PostSubscription(string applicationName, string moduleName, [FromBody] XElement xmlFromBody)
         {
-
-            if (xmlFromBody == null)
+            //validate body contents using XSD
+            XML_handler handler = new XML_handler(xmlFromBody, subscriptionXSDPath);
+            if (!handler.ValidateXML())
             {
                 errorMessage = new Error();
-                errorMessage.message = "Body content is not well formated";
+                errorMessage.message = handler.ValidationMessage;
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
 
             String name = xmlFromBody.XPathSelectElement("/name").Value;
+            if (DB_utils.existsSubscriptionInModule(moduleName, name))
+            {
+                errorMessage = new Error();
+                errorMessage.message = "An Subscription with such name already exists for this module!";
+                return Content(HttpStatusCode.Conflict, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
+                
+
             String eventType = xmlFromBody.XPathSelectElement("/eventType").Value;
             String endPoint = xmlFromBody.XPathSelectElement("/endpoint").Value;
 
@@ -549,9 +576,6 @@ namespace somiodApp.Controllers
                 rawEndPoint = endPoint;
                 endPointPrefix = "";
             }
-
-            if (DB_utils.existsSubscriptionInModule(moduleName, name))
-                return Content(HttpStatusCode.Conflict, "An Subscription with such name already exists for this module!", Configuration.Formatters.XmlFormatter);
 
             SqlConnection conn = null;
 
@@ -585,15 +609,23 @@ namespace somiodApp.Controllers
             }
         }
 
-        //soft delete
         //DELETE api/somiod/<applicationName>/<moduleName>/<subscriptionName>
         [Route("{applicationName}/{moduleName}/{subscriptionName}")]
         public IHttpActionResult PutSubscription(string applicationName, string moduleName, string subscriptionName, [FromBody] XElement xmlFromBody)
         {
+            //validate body contents using XSD
+            XML_handler handler = new XML_handler(xmlFromBody, subscriptionXSDPath);
+            if (!handler.ValidateXML())
+            {
+                errorMessage = new Error();
+                errorMessage.message = handler.ValidationMessage;
+                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
+            }
+
             if (xmlFromBody == null)
             {
                 errorMessage = new Error();
-                errorMessage.message = "Body content is not well formated";
+                errorMessage.message = "Body content is not according to XML syntax";
                 return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
             }
 
@@ -630,7 +662,7 @@ namespace somiodApp.Controllers
 
                 conn.Close();
 
-                return Content(HttpStatusCode.OK, "", Configuration.Formatters.XmlFormatter);
+                return Content(HttpStatusCode.Created, "", Configuration.Formatters.XmlFormatter);
             }
             catch (Exception e)
             {
@@ -643,16 +675,11 @@ namespace somiodApp.Controllers
         }
         #endregion
 
-        #region Data       
+
+        #region Data
+        //Redirect function from parent PostSubscriptionData()
         public IHttpActionResult PostData(string applicationName, string moduleName, [FromBody] XElement xmlFromBody)
         {
-            if (xmlFromBody == null)
-            {
-                errorMessage = new Error();
-                errorMessage.message = "Body content is not well formated";
-                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
-            }
-
             String content = xmlFromBody.XPathSelectElement("/content").Value;
 
             SqlConnection conn = null;

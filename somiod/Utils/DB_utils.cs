@@ -1,7 +1,9 @@
 ﻿using somiodApp.Models;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data.SqlClient;
+using System.Net;
 
 namespace somiodApp.Utils
 {
@@ -95,6 +97,7 @@ namespace somiodApp.Utils
 
         }
         
+        //~soft delete check done~
         public static Application findApplication(string applicationName)
         {
             Application application = new Application();
@@ -106,7 +109,7 @@ namespace somiodApp.Utils
                 conn.Open();
 
                 SqlCommand command = new SqlCommand();
-                command.CommandText = "SELECT * FROM Applications WHERE name like @applicationName";
+                command.CommandText = "SELECT * FROM Applications WHERE name like @applicationName AND is_deleted = 0";
                 command.Parameters.AddWithValue("@applicationName", applicationName);
                 command.CommandType = System.Data.CommandType.Text;
                 command.Connection = conn;
@@ -131,7 +134,7 @@ namespace somiodApp.Utils
             }
             catch (Exception)
             {
-                return new Application();
+                return null;
             }
             finally
             {
@@ -139,6 +142,7 @@ namespace somiodApp.Utils
             }
         }
 
+        //~soft delete check done~
         public static Module findModule(string applicationName, string moduleName)
         {
             Module module = new Module();
@@ -150,7 +154,7 @@ namespace somiodApp.Utils
                 conn.Open();
 
                 SqlCommand command = new SqlCommand();
-                command.CommandText = "SELECT * FROM Modules M JOIN Applications A ON A.ID = M.applicationID WHERE M.name = @moduleName AND A.ID = @applicationID";
+                command.CommandText = "SELECT * FROM Modules M JOIN Applications A ON A.ID = M.applicationID WHERE M.name = @moduleName AND A.ID = @applicationID AND A.is_deleted = 0 AND M.is_deleted = 0";
                 command.Parameters.AddWithValue("@moduleName", moduleName);
                 command.Parameters.AddWithValue("@applicationID", getApplicationId(applicationName));
                 command.CommandType = System.Data.CommandType.Text;
@@ -167,6 +171,7 @@ namespace somiodApp.Utils
                     module.Id = (int)reader["Id"];
                     module.name = (string)reader["name"];
                     module.creation_dt = (DateTime)reader["creation_dt"];
+                    module.applicationID = (int)reader["applicationID"];
                 }
 
                 reader.Close();
@@ -237,7 +242,8 @@ namespace somiodApp.Utils
                 conn.Close();
             }
         }
-       
+
+        //~soft delete check done~
         public static Boolean existsSubscriptionInModule(string moduleName, string name)
         {
             int moduleID = 0;
@@ -249,7 +255,7 @@ namespace somiodApp.Utils
                 conn.Open();
 
                 SqlCommand command = new SqlCommand();
-                command.CommandText = "SELECT * FROM Modules WHERE name like @moduleName";
+                command.CommandText = "SELECT * FROM Modules WHERE name like @moduleName and is_deleted = 0";
                 command.Parameters.AddWithValue("@moduleName", moduleName);
                 command.CommandType = System.Data.CommandType.Text;
                 command.Connection = conn;
@@ -265,7 +271,7 @@ namespace somiodApp.Utils
 
                     reader.Close();
 
-                    command.CommandText = "SELECT * FROM Subscriptions WHERE name like @name AND moduleId like @moduleId";
+                    command.CommandText = "SELECT * FROM Subscriptions WHERE name like @name AND moduleId like @moduleId AND is_deleted = 0";
                     command.Parameters.AddWithValue("@name", name);
                     command.Parameters.AddWithValue("@moduleId", moduleID);
                     command.CommandType = System.Data.CommandType.Text;
@@ -294,6 +300,7 @@ namespace somiodApp.Utils
             }
         }
 
+        //~soft delete check done~
         public static Boolean existsModuleInApplication(string applicationName, string name)
         {
             int applicationID = 0;
@@ -305,7 +312,7 @@ namespace somiodApp.Utils
                 conn.Open();
 
                 SqlCommand command = new SqlCommand();
-                command.CommandText = "SELECT * FROM Applications WHERE name like @applicationName";
+                command.CommandText = "SELECT * FROM Applications WHERE name like @applicationName AND is_deleted = 0";
                 command.Parameters.AddWithValue("@applicationName", applicationName);
                 command.CommandType = System.Data.CommandType.Text;
                 command.Connection = conn;
@@ -321,7 +328,7 @@ namespace somiodApp.Utils
 
                     reader.Close();
 
-                    command.CommandText = "SELECT * FROM Modules WHERE name like @name AND applicationId like @applicationId";
+                    command.CommandText = "SELECT * FROM Modules WHERE name like @name AND applicationId like @applicationId AND is_deleted = 0";
                     command.Parameters.AddWithValue("@name", name);
                     command.Parameters.AddWithValue("@applicationId", applicationID);
                     command.CommandType = System.Data.CommandType.Text;
@@ -350,6 +357,7 @@ namespace somiodApp.Utils
             }
         }
 
+        //~soft delete check done~
         public static Boolean existsApplication(string applicationName)
         {
             Boolean hasFoundApplication = false;
@@ -360,7 +368,7 @@ namespace somiodApp.Utils
                 conn.Open();
 
                 SqlCommand command = new SqlCommand();
-                command.CommandText = "SELECT * FROM Applications WHERE name like @applicationName";
+                command.CommandText = "SELECT * FROM Applications WHERE name like @applicationName AND is_deleted = 0";
                 command.Parameters.AddWithValue("@applicationName", applicationName);
                 command.CommandType = System.Data.CommandType.Text;
                 command.Connection = conn;
@@ -476,5 +484,50 @@ namespace somiodApp.Utils
             }
         }
         
+        public static Modules getModulesFromApplication(string applicationName)
+        {
+            int applicationId = getApplicationId(applicationName);
+
+            Modules modules = new Modules();
+            Module module;
+            SqlConnection conn = null;
+
+            try
+            {
+                conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                SqlCommand command = new SqlCommand();
+                command.CommandText = "SELECT * FROM Modules WHERE applicationID = @applicationId";
+                command.Parameters.AddWithValue("@applicationId", applicationId);
+                command.CommandType = System.Data.CommandType.Text;
+                command.Connection = conn;
+
+                SqlDataReader reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    module = new Module();
+                    module.Id = (int)reader["Id"];
+                    module.name = (string)reader["name"];
+                    module.creation_dt = (DateTime)reader["creation_dt"];
+                    module.applicationID = (int)reader["applicationID"];
+
+                    modules.Add(module);
+                }
+                reader.Close();
+                conn.Close();
+
+                return modules;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
     }
 }

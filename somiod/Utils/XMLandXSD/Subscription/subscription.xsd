@@ -4,11 +4,29 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element name="id" type="xs:unsignedByte" minOccurs="0" />
-        <xs:element name="name" type="xs:string" minOccurs="1"/>
+		<xs:element name="name" minOccurs="1">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:element>
         <xs:element name="creation_dt" type="xs:string" minOccurs="0"/>
-        <xs:element name="moduleID" type="xs:unsignedByte" minOccurs="1" />
-        <xs:element name="eventType" type="xs:string" minOccurs="1"/>
-        <xs:element name="endpoint" type="xs:string" minOccurs="1"/>
+        <xs:element name="moduleID" type="xs:unsignedByte" minOccurs="0" />
+		<xs:element name="eventType" minOccurs="1">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:element>
+		<xs:element name="endpoint" minOccurs="1">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:element>
       </xs:sequence>
     </xs:complexType>
   </xs:element>

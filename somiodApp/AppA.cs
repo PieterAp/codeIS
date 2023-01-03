@@ -201,10 +201,10 @@ namespace somiodApp
             //Check if xml has any elements 
             if (!string.IsNullOrEmpty(xmlString) && doc.Root.Elements().Any())
             {
-                modules = doc.Descendants("Module").Select(d =>
+                modules = doc.Descendants("module").Select(d =>
                 new Module
                 {
-                    id = int.Parse(d.Element("Id").Value),
+                    id = int.Parse(d.Element("id").Value),
                     name = d.Element("name").Value,
                     creation_dt = DateTime.Parse(d.Element("creation_dt").Value),
                     applicationID = int.Parse(d.Element("applicationID").Value)
