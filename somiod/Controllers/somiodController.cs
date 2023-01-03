@@ -612,34 +612,8 @@ namespace somiodApp.Controllers
 
         //DELETE api/somiod/<applicationName>/<moduleName>/<subscriptionName>
         [Route("{applicationName}/{moduleName}/{subscriptionName}")]
-        public IHttpActionResult PutSubscription(string applicationName, string moduleName, string subscriptionName, [FromBody] XElement xmlFromBody)
+        public IHttpActionResult DeleteSubscription(string applicationName, string moduleName, string subscriptionName)
         {
-            //validate body contents using XSD
-            XML_handler handler = new XML_handler(xmlFromBody, subscriptionXSDPath);
-            if (!handler.ValidateXML())
-            {
-                errorMessage = new Error();
-                errorMessage.message = handler.ValidationMessage;
-                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
-            }
-
-            if (xmlFromBody == null)
-            {
-                errorMessage = new Error();
-                errorMessage.message = "Body content is not according to XML syntax";
-                return Content(HttpStatusCode.BadRequest, errorMessage, Configuration.Formatters.XmlFormatter);
-            }
-
-            String res_type = xmlFromBody.XPathSelectElement("/res_type").Value;
-            String name = xmlFromBody.XPathSelectElement("/name").Value;
-
-            if (DB_utils.existsSubscriptionInModule(moduleName, name))
-            {
-                errorMessage = new Error();
-                errorMessage.message = "An subscription with such name already exists for this module!";
-                return Content(HttpStatusCode.Conflict, errorMessage, Configuration.Formatters.XmlFormatter);
-            }
-
             Subscription foundSubscription = DB_utils.findSubscription(applicationName, moduleName, subscriptionName);
             if (foundSubscription == null)
             {
@@ -656,15 +630,11 @@ namespace somiodApp.Controllers
                 conn.Open();
 
                 SqlCommand command = new SqlCommand();
-
-                command.CommandText = "DELETE S FROM Subscriptions S " +
-                    "LEFT JOIN Modules M ON S.moduleID = M.Id " +
-                    "LEFT JOIN Applications A ON A.Id = M.applicationID " +
-                    "WHERE S.id = @id AND M.id = @moduleID AND A.id = @applicationID";
-
+                command.CommandText = "UPDATE Subscriptions SET is_deleted=1, deletion_dt=@currDate WHERE id = @id";
                 command.Parameters.AddWithValue("@id", foundSubscription.Id);
-                command.Parameters.AddWithValue("@moduleID", DB_utils.getModuleId(moduleName));
-                command.Parameters.AddWithValue("@applicationID", DB_utils.getApplicationId(applicationName));
+                command.Parameters.AddWithValue("@currDate", DateTime.Now);
+
+
                 command.CommandType = System.Data.CommandType.Text;
                 command.Connection = conn;
                 command.ExecuteNonQuery();
@@ -682,6 +652,8 @@ namespace somiodApp.Controllers
                 conn.Close();
             }
         }
+
+
         #endregion
 
 
